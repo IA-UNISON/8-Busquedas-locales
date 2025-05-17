@@ -19,7 +19,7 @@ $pip install pillow
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
+__author__ = 'Miguel Cruz Duarte'
 
 import blocales
 import random
@@ -112,10 +112,18 @@ class problema_grafica_grafo(blocales.Problema):
 
         """
         vecino = list(estado)
-        i = random.randint(0, len(vecino) - 1)
-        vecino[i] = max(10,
-                        min(self.dim - 10,
-                            vecino[i] + random.randint(-dmax,  dmax)))
+        n_vertices = len(self.vertices)
+
+        nodo = random.randint(0, n_vertices - 1)
+        idx_x = 2 * nodo
+        idx_y = idx_x + 1
+
+        delta_x = random.randint(-dmax, dmax)
+        delta_y = random.randint(-dmax, dmax)
+
+        vecino[idx_x] = max(10, min(self.dim - 10, vecino[idx_x] + delta_x))
+        vecino[idx_y] = max(10, min(self.dim - 10, vecino[idx_y] + delta_y))
+
         return tuple(vecino)
 
         #######################################################################
@@ -142,10 +150,10 @@ class problema_grafica_grafo(blocales.Problema):
 
         # Inicializa fáctores lineales para los criterios más importantes
         # (default solo cuanta el criterio 1)
-        K1 = 1.0
-        K2 = 0.0
-        K3 = 0.0
-        K4 = 0.0
+        K1 = 51.0
+        K2 = 26.0
+        K3 = 13.0
+        K4 = 4.0
 
         # Genera un diccionario con el estado y la posición
         estado_dic = self.estado2dic(estado)
@@ -274,11 +282,49 @@ class problema_grafica_grafo(blocales.Problema):
         # lograr que el sistema realice gráficas "bonitas"
         #
         # ¿Que valores de diste a K1, K2 y K3 respectivamente?
-        #
+        # 1,6,3,4,51,26,13,4
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
         #
-        return 0
+
+        penalizacion = 0
+        umbral = math.pi / 6  # 30 grados
+
+        # Diccionario de vecinos por vértice
+        vecinos_por_vertice = {v: [] for v in self.vertices}
+        for v1, v2 in self.aristas:
+            vecinos_por_vertice[v1].append(v2)
+            vecinos_por_vertice[v2].append(v1)
+
+        for v in self.vertices:
+            pos_v = estado_dic[v]
+            vecinos = vecinos_por_vertice[v]
+
+            # Comparamos todas las combinaciones de pares de vecinos
+            for u, w in itertools.combinations(vecinos, 2):
+                pos_u = estado_dic[u]
+                pos_w = estado_dic[w]
+
+                # Vectores desde v hacia u y w
+                vec1 = (pos_u[0] - pos_v[0], pos_u[1] - pos_v[1])
+                vec2 = (pos_w[0] - pos_v[0], pos_w[1] - pos_v[1])
+
+                # Producto punto y magnitudes
+                dot = vec1[0]*vec2[0] + vec1[1]*vec2[1]
+                mag1 = math.hypot(*vec1)
+                mag2 = math.hypot(*vec2)
+
+                if mag1 == 0 or mag2 == 0:
+                    continue
+
+                cos_theta = dot / (mag1 * mag2)
+                cos_theta = max(-1.0, min(1.0, cos_theta))  # evitar errores numéricos
+                theta = math.acos(cos_theta)
+
+                if theta < umbral:
+                    penalizacion += (1 - theta / umbral)
+
+        return penalizacion
 
     def criterio_propio(self, estado_dic):
         """
@@ -300,12 +346,17 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # Desarrolla un criterio propio y ajusta su importancia en el
         # costo total con K4 ¿Mejora el resultado? ¿En que mejora el
-        # resultado final?
+        # resultado final? el costo aumento, pero tarda mas en completarse
         #
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
         #
-        return 0
+        total = 0
+        for (v1, v2) in self.aristas:
+            (x1, y1), (x2, y2) = estado_dic[v1], estado_dic[v2]
+            distancia = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+            total += distancia
+        return total / (len(self.aristas) or 1)
 
     def estado2dic(self, estado):
         """
@@ -398,10 +449,11 @@ def main():
     #                          20 PUNTOS
     ##########################################################################
     # ¿Que valores para ajustar el temple simulado son los que mejor
-    # resultado dan?
+    # resultado dan? entre 1 hasta 4
     #
     # ¿Que encuentras en los resultados?, ¿Cual es el criterio mas importante?
-    #
+    # el aumento del costo, pero el mas importante fue K4, la longitud
+
     # En general para obtener mejores resultados del temple simulado,
     # es necesario utilizar una función de calendarización acorde con
     # el metodo en que se genera el vecino aleatorio.  Existen en la
