@@ -19,7 +19,7 @@ $pip install pillow
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
+__author__ = 'Alan Torres'
 
 import blocales
 import random
@@ -94,30 +94,7 @@ class problema_grafica_grafo(blocales.Problema):
                                 vecino[i] + random.randint(-10, 10)))
             yield tuple(vecino)
     
-    def vecino_aleatorio(self, estado, dmax=10):
-        """
-        Encuentra un vecino en forma aleatoria. En estea primera
-        versión lo que hacemos es tomar un valor aleatorio, y
-        sumarle o restarle x pixeles al azar.
-
-        Este es un vecino aleatorio muy malo. Por lo que deberás buscar
-        como hacer un mejor vecino aleatorio y comparar las ventajas de
-        hacer un mejor vecino en el algoritmo de temple simulado.
-
-        @param estado: Una tupla con el estado.
-        @param dispersion: Un flotante con el valor de dispersión para el
-                           vertice seleccionado
-
-        @return: Una tupla con un estado vecino al estado de entrada.
-
-        """
-        vecino = list(estado)
-        i = random.randint(0, len(vecino) - 1)
-        vecino[i] = max(10,
-                        min(self.dim - 10,
-                            vecino[i] + random.randint(-dmax,  dmax)))
-        return tuple(vecino)
-
+    
         #######################################################################
         #                          20 PUNTOS
         #######################################################################
@@ -125,6 +102,46 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # Propon una manera alternativa de vecino_aleatorio y muestra que
         # con tu propuesta se obtienen resultados mejores o en menor tiempo
+
+  
+
+    def vecino_aleatorio(self, estado, dmax=10, temp_factor=None):
+        """
+        Versión mejorada que adapta la magnitud del movimiento según la temperatura
+        y ocasionalmente hace movimientos más grandes.
+        """
+        vecino = list(estado)
+        
+        # Si no se proporciona un factor de temperatura, usar un valor aleatorio
+        if temp_factor is None:
+            # Podemos obtener esto del algoritmo de temple simulado
+            temp_factor = getattr(self, 'temp_factor', random.random())
+        
+        # La amplitud del movimiento depende de la temperatura
+        # A temperaturas altas: movimientos grandes para explorar
+        # A temperaturas bajas: movimientos pequeños para refinar
+        amplitud = int(max(1, dmax * temp_factor))
+        
+        # Seleccionar un vértice al azar
+        vertice = random.randint(0, len(self.vertices) - 1)
+        idx_x = vertice * 2
+        idx_y = idx_x + 1
+        
+        # Movimiento normal con amplitud adaptativa
+        vecino[idx_x] = max(10, min(self.dim - 10, vecino[idx_x] + random.randint(-amplitud, amplitud)))
+        vecino[idx_y] = max(10, min(self.dim - 10, vecino[idx_y] + random.randint(-amplitud, amplitud)))
+        
+        # Ocasionalmente (15% de probabilidad) hacer un salto grande 
+        # para escapar de mínimos locales, especialmente a altas temperaturas
+        if random.random() < 0.15 * temp_factor:
+            # Salto más grande (hasta 3 veces dmax)
+            vecino[idx_x] = max(10, min(self.dim - 10, vecino[idx_x] + random.randint(int(-dmax*3), int(dmax*3))))
+            vecino[idx_y] = max(10, min(self.dim - 10, vecino[idx_y] + random.randint(int(-dmax*3), int(dmax*3))))
+        
+        return tuple(vecino)
+
+
+
 
     def costo(self, estado):
         """
@@ -250,35 +267,77 @@ class problema_grafica_grafo(blocales.Problema):
                 total += (1.0 - (dist / min_dist))
         return total
 
-    def angulo_aristas(self, estado_dic):
+
+    def angulo_aristas(self, estado_dic, min_angulo=math.pi/6, max_angulo=math.pi*5/6):
         """
-        A partir de una posicion "estado", devuelve una penalizacion
-        proporcional a cada angulo entre aristas menor a pi/6 rad (30
-        grados). Los angulos de pi/6 o mayores no llevan ninguna
-        penalización, y la penalizacion crece conforme el angulo es
-        menor.
-
-        @param estado_dic: Diccionario cuyas llaves son los vértices
-                           del grafo y cuyos valores es una tupla con
-                           la posición (x, y) de ese vértice en el
-                           dibujo.
-
-        @return: Un número.
-
+        Calcula una penalización para ángulos entre aristas que estén fuera de un rango deseado.
+        Penaliza ángulos menores a min_angulo (muy agudos) y mayores a max_angulo (muy obtusos).
+        
+        El rango ideal para los ángulos sería entre 30 grados (π/6) y 150 grados (5π/6).
+        
+        @param estado_dic: Diccionario con posiciones de vértices
+        @param min_angulo: Ángulo mínimo deseado entre aristas (por defecto 30 grados)
+        @param max_angulo: Ángulo máximo deseado entre aristas (por defecto 150 grados)
+        
+        @return: Penalización total
         """
-        #######################################################################
-        #                          20 PUNTOS
-        #######################################################################
-        # Agrega el método que considere el angulo entre aristas de
-        # cada vertice. Dale diferente peso a cada criterio hasta
-        # lograr que el sistema realice gráficas "bonitas"
-        #
-        # ¿Que valores de diste a K1, K2 y K3 respectivamente?
-        #
-        #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
-        #
-        return 0
+        total = 0
+        
+        # Para cada vértice, encontrar las aristas que lo conectan
+        for vertice in self.vertices:
+            # Encontrar todos los vértices adyacentes
+            adyacentes = []
+            for (v1, v2) in self.aristas:
+                if v1 == vertice:
+                    adyacentes.append(v2)
+                elif v2 == vertice:
+                    adyacentes.append(v1)
+            
+            # Si hay menos de 2 adyacentes, no hay ángulos para calcular
+            if len(adyacentes) < 2:
+                continue
+            
+            # Posición del vértice actual
+            x0, y0 = estado_dic[vertice]
+            
+            # Calcular ángulos entre cada par de aristas
+            for i, v1 in enumerate(adyacentes):
+                x1, y1 = estado_dic[v1]
+                # Vector de la primera arista
+                vector1 = (x1 - x0, y1 - y0)
+                
+                for v2 in adyacentes[i+1:]:
+                    x2, y2 = estado_dic[v2]
+                    # Vector de la segunda arista
+                    vector2 = (x2 - x0, y2 - y0)
+                    
+                    # Calcular el ángulo entre los vectores usando el producto escalar
+                    prod_escalar = vector1[0]*vector2[0] + vector1[1]*vector2[1]
+                    magnitud1 = math.sqrt(vector1[0]**2 + vector1[1]**2)
+                    magnitud2 = math.sqrt(vector2[0]**2 + vector2[1]**2)
+                    
+                    # Evitar división por cero
+                    if magnitud1 == 0 or magnitud2 == 0:
+                        continue
+                        
+                    cos_angulo = prod_escalar / (magnitud1 * magnitud2)
+                    # Asegurar que cos_angulo está en [-1, 1] para evitar errores
+                    cos_angulo = max(-1, min(1, cos_angulo))
+                    
+                    # Obtener el ángulo en radianes (entre 0 y π)
+                    angulo = math.acos(cos_angulo)
+                    
+                    # Penalizar ángulos fuera del rango deseado
+                    if angulo < min_angulo:
+                        # Ángulo demasiado agudo - penalizar más cuanto más pequeño sea
+                        penalizacion = 1.0 - (angulo / min_angulo)
+                        total += penalizacion
+                    elif angulo > max_angulo:
+                        # Ángulo demasiado obtuso - penalizar más cuanto más grande sea
+                        penalizacion = 1.0 - ((math.pi - angulo) / (math.pi - max_angulo))
+                        total += penalizacion
+                    
+        return total
 
     def criterio_propio(self, estado_dic):
         """
@@ -305,7 +364,66 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
         #
-        return 0
+        total = 0
+
+    
+
+        # 1. Calcular el centro de masa del grafo
+
+        sum_x, sum_y = 0, 0
+
+        for v in self.vertices:
+
+            x, y = estado_dic[v]
+
+            sum_x += x
+
+            sum_y += y
+
+        
+
+        centro_x = sum_x / len(self.vertices)
+
+        centro_y = sum_y / len(self.vertices)
+
+        
+
+        # 2. Calcular la distancia estándar al centro (dispersión)
+
+        sum_dist_cuadrado = 0
+
+        for v in self.vertices:
+            x, y = estado_dic[v]
+            dist_cuadrado = (x - centro_x)**2 + (y - centro_y)**2
+
+            sum_dist_cuadrado += dist_cuadrado
+        dispersion = math.sqrt(sum_dist_cuadrado / len(self.vertices))
+        # 3. Penalizar si la dispersión es muy pequeña (muy agrupados)
+        dispersion_ideal = self.dim * 0.3  # Un 30% de la dimensión de la imagen
+        if dispersion < dispersion_ideal:
+            total += 1.0 - (dispersion / dispersion_ideal)
+        cuadrantes = [0, 0, 0, 0]  # [superior-izq, superior-der, inferior-izq, inferior-der]
+        for v in self.vertices:
+            x, y = estado_dic[v]
+            if x < centro_x and y < centro_y:
+                cuadrantes[0] += 1
+            elif x >= centro_x and y < centro_y:
+                cuadrantes[1] += 1
+            elif x < centro_x and y >= centro_y:
+                cuadrantes[2] += 1
+            else:
+
+                cuadrantes[3] += 1
+
+        # Calcular desequilibrio como la desviación estándar de la cantidad de vértices por cuadrante
+        num_por_cuadrante_ideal = len(self.vertices) / 4
+        desequilibrio = sum((c - num_por_cuadrante_ideal)**2 for c in cuadrantes) / 4
+        desequilibrio = math.sqrt(desequilibrio) / num_por_cuadrante_ideal
+    
+        total += desequilibrio
+
+        return total
+
 
     def estado2dic(self, estado):
         """
