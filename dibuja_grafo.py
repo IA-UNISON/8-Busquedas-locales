@@ -486,6 +486,14 @@ def main():
     # ------ IMPLEMENTA AQUI TU CÓDIGO ---------------------------------------
     #
 
+def enfriamiento_logaritmico(T0, iteracion):
+    """
+    Enfriamiento logarítmico según Kirkpatrick.
+    T0: temperatura inicial
+    iteracion: número de iteración actual
+    """
+    return T0 / math.log(iteracion + 2)
+
 
 if __name__ == '__main__':
     main()
