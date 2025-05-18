@@ -300,7 +300,44 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
         #
-        return 0
+        """
+        Penaliza angulos menores a 30 grados entre aristas en cada vertice.
+        """
+        penalizacion_total = 0
+        umbral = math.pi / 6
+
+        for v in self.grafo:
+            vecinos = self.grafo[v]
+            if len(vecinos) < 2:
+                continue 
+
+            p1 = estado_dic[v]
+
+            for u, w in math.combinations(vecinos, 2):
+                p2 = estado_dic[u]
+                p3 = estado_dic[w]
+
+                vec1 = (p2[0] - p1[0], p2[1] - p1[1])
+                vec2 = (p3[0] - p1[0], p3[1] - p1[1])
+
+                norm1 = math.hypot(*vec1)
+                norm2 = math.hypot(*vec2)
+                if norm1 == 0 or norm2 == 0:
+                    continue 
+
+                v1n = (vec1[0]/norm1, vec1[1]/norm1)
+                v2n = (vec2[0]/norm2, vec2[1]/norm2)
+
+                dot = v1n[0]*v2n[0] + v1n[1]*v2n[1]
+                dot = min(1.0, max(-1.0, dot))
+                angulo = math.acos(dot)
+
+                if angulo < umbral:
+                    penalizacion = (umbral - angulo) ** 2
+                    penalizacion_total += penalizacion
+
+        return penalizacion_total
+        
 
     def criterio_propio(self, estado_dic):
         """
