@@ -299,6 +299,7 @@ class problema_grafica_grafo(blocales.Problema):
         #
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
+        
         penalizacion_total = 0
         umbral = math.pi / 6
 
@@ -359,8 +360,22 @@ class problema_grafica_grafo(blocales.Problema):
         #
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
-        #
-        return 0
+        penalizacion_total = 0
+        distancia_minima = 30
+
+        vertices = list(estado_dic.keys())
+        for i in range(len(vertices)):
+            for j in range(i + 1, len(vertices)):
+                v1, v2 = vertices[i], vertices[j]
+                x1, y1 = estado_dic[v1]
+                x2, y2 = estado_dic[v2]
+                distancia = math.hypot(x2 - x1, y2 - y1)
+
+                if distancia < distancia_minima:
+                    penalizacion = (distancia_minima - distancia) ** 2
+                    penalizacion_total += penalizacion
+
+        return penalizacion_total
 
     def estado2dic(self, estado):
         """
