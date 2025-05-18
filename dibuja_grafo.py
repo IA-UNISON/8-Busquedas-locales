@@ -299,10 +299,6 @@ class problema_grafica_grafo(blocales.Problema):
         #
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
-        #
-        """
-        Penaliza angulos menores a 30 grados entre aristas en cada vertice.
-        """
         penalizacion_total = 0
         umbral = math.pi / 6
 
