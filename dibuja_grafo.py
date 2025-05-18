@@ -19,7 +19,7 @@ $pip install pillow
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
+__author__ = 'Jesus Flores Lacarra'
 
 import blocales
 import random
@@ -125,6 +125,28 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # Propon una manera alternativa de vecino_aleatorio y muestra que
         # con tu propuesta se obtienen resultados mejores o en menor tiempo
+        
+    def vecino_aleatorio_mejorado(self, estado, dmax=10, temperatura=1.0):
+        """
+        Genera un vecino modificando múltiples coordenadas.
+
+        @param estado: Una tupla con el estado actual.
+        @param dmax: Máxima dispersión permitida por coordenada.
+        @param temperatura: Temperatura actual (entre 0 y 1).
+
+        @return: Una tupla con un estado vecino al estado de entrada.
+        """
+        vecino = list(estado)
+
+        num_modificaciones = max(1, int(len(vecino) * temperatura))
+
+        indices = random.sample(range(len(vecino)), num_modificaciones)
+        for i in indices:
+            delta = int(random.uniform(-dmax, dmax) * temperatura)
+            vecino[i] = max(10, min(self.dim - 10, vecino[i] + delta))
+
+        return tuple(vecino)
+
 
     def costo(self, estado):
         """
