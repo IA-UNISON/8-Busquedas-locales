@@ -19,7 +19,7 @@ $pip install pillow
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
+__author__ = 'GeorginaSalcido'
 
 import blocales
 import random
@@ -112,11 +112,11 @@ class problema_grafica_grafo(blocales.Problema):
 
         """
         vecino = list(estado)
-        i = random.randint(0, len(vecino) - 1)
-        vecino[i] = max(10,
-                        min(self.dim - 10,
-                            vecino[i] + random.randint(-dmax,  dmax)))
-        return tuple(vecino)
+        # i = random.randint(0, len(vecino) - 1)
+        # vecino[i] = max(10,
+        #                 min(self.dim - 10,
+        #                     vecino[i] + random.randint(-dmax,  dmax)))
+        # return tuple(vecino)
 
         #######################################################################
         #                          20 PUNTOS
@@ -125,6 +125,13 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # Propon una manera alternativa de vecino_aleatorio y muestra que
         # con tu propuesta se obtienen resultados mejores o en menor tiempo
+
+        idx = random.randint(0, len(self.vertices) - 1)
+        vecino[2*idx] = max(10, min(self.dim - 10, vecino[2*idx] + random.randint(-dmax, dmax)))
+        vecino[2*idx+1] = max(10, min(self.dim - 10, vecino[2*idx+1] + random.randint(-dmax, dmax)))
+        return tuple(vecino)
+        #Ahora se meuve el vertice compelto,así que los asltos son más eficientes.
+
 
     def costo(self, estado):
         """
@@ -274,11 +281,30 @@ class problema_grafica_grafo(blocales.Problema):
         # lograr que el sistema realice gráficas "bonitas"
         #
         # ¿Que valores de diste a K1, K2 y K3 respectivamente?
+        # K1=1.0, K2=0.5, K3=0.5, K4=0
         #
         #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
-        #
-        return 0
+        penalizacion = 0
+        for v in self.vertices:
+            adyacentes = [u for u1, u2 in self.aristas for u in ([u2] if u1 == v else ([u1] if u2 == v else []))] #aristas
+            for u, w in itertools.combinations(adyacentes, 2): #buscamos los angulos
+                x0, y0 = estado_dic[v]
+                x1, y1 = estado_dic[u]
+                x2, y2 = estado_dic[w]
+                v1 = (x1 - x0, y1 - y0)
+                v2 = (x2 - x0, y2 - y0)
+                prod_punto = v1[0]*v2[0] + v1[1]*v2[1]
+                norm1 = math.sqrt(v1[0]**2 + v1[1]**2)
+                norm2 = math.sqrt(v2[0]**2 + v2[1]**2)
+                if norm1 == 0 or norm2 == 0:
+                    continue
+                cos_theta = prod_punto / (norm1 * norm2)
+                cos_theta = max(-1.0, min(1.0, cos_theta))
+                theta = math.acos(cos_theta)
+                if theta < math.pi/6:
+                    penalizacion += (math.pi/6 - theta) / (math.pi/6)
+        return penalizacion
+
 
     def criterio_propio(self, estado_dic):
         """
@@ -303,9 +329,16 @@ class problema_grafica_grafo(blocales.Problema):
         # resultado final?
         #
         #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
-        #
-        return 0
+        longitudes = []
+        for v1, v2 in self.aristas:
+            x1, y1 = estado_dic[v1]
+            x2, y2 = estado_dic[v2]
+            longitudes.append(math.sqrt((x1-x2)**2 + (y1-y2)**2))
+        if len(longitudes) == 0:
+            return 0
+        media = sum(longitudes)/len(longitudes)
+        varianza = sum((l - media)**2 for l in longitudes) / len(longitudes)
+        return varianza
 
     def estado2dic(self, estado):
         """
@@ -399,8 +432,10 @@ def main():
     ##########################################################################
     # ¿Que valores para ajustar el temple simulado son los que mejor
     # resultado dan?
+    #   Temperatura inicial alta con T0=1000 y un enfriado lento de alpha = 0.99
     #
     # ¿Que encuentras en los resultados?, ¿Cual es el criterio mas importante?
+    # El criterio de cruces a mi parecer.
     #
     # En general para obtener mejores resultados del temple simulado,
     # es necesario utilizar una función de calendarización acorde con
@@ -412,6 +447,8 @@ def main():
     # menor tiempo posible.
     #
     # Escribe aqui tus conclusiones
+    # Con una calendarización logarítmica, la convergencia es más suave y evita 
+    # caer rápido en mínimos localess
     #
     # ------ IMPLEMENTA AQUI TU CÓDIGO ---------------------------------------
     #
