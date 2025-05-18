@@ -19,7 +19,7 @@ $pip install pillow
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
+__author__ = 'Jesus Flores Lacarra'
 
 import blocales
 import random
@@ -125,6 +125,28 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # Propon una manera alternativa de vecino_aleatorio y muestra que
         # con tu propuesta se obtienen resultados mejores o en menor tiempo
+        
+    def vecino_aleatorio_mejorado(self, estado, dmax=10, temperatura=1.0):
+        """
+        Genera un vecino modificando múltiples coordenadas.
+
+        @param estado: Una tupla con el estado actual.
+        @param dmax: Máxima dispersión permitida por coordenada.
+        @param temperatura: Temperatura actual (entre 0 y 1).
+
+        @return: Una tupla con un estado vecino al estado de entrada.
+        """
+        vecino = list(estado)
+
+        num_modificaciones = max(1, int(len(vecino) * temperatura))
+
+        indices = random.sample(range(len(vecino)), num_modificaciones)
+        for i in indices:
+            delta = int(random.uniform(-dmax, dmax) * temperatura)
+            vecino[i] = max(10, min(self.dim - 10, vecino[i] + delta))
+
+        return tuple(vecino)
+
 
     def costo(self, estado):
         """
@@ -277,8 +299,42 @@ class problema_grafica_grafo(blocales.Problema):
         #
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
-        #
-        return 0
+        
+        penalizacion_total = 0
+        umbral = math.pi / 6
+
+        for v in self.grafo:
+            vecinos = self.grafo[v]
+            if len(vecinos) < 2:
+                continue 
+
+            p1 = estado_dic[v]
+
+            for u, w in math.combinations(vecinos, 2):
+                p2 = estado_dic[u]
+                p3 = estado_dic[w]
+
+                vec1 = (p2[0] - p1[0], p2[1] - p1[1])
+                vec2 = (p3[0] - p1[0], p3[1] - p1[1])
+
+                norm1 = math.hypot(*vec1)
+                norm2 = math.hypot(*vec2)
+                if norm1 == 0 or norm2 == 0:
+                    continue 
+
+                v1n = (vec1[0]/norm1, vec1[1]/norm1)
+                v2n = (vec2[0]/norm2, vec2[1]/norm2)
+
+                dot = v1n[0]*v2n[0] + v1n[1]*v2n[1]
+                dot = min(1.0, max(-1.0, dot))
+                angulo = math.acos(dot)
+
+                if angulo < umbral:
+                    penalizacion = (umbral - angulo) ** 2
+                    penalizacion_total += penalizacion
+
+        return penalizacion_total
+        
 
     def criterio_propio(self, estado_dic):
         """
@@ -304,8 +360,22 @@ class problema_grafica_grafo(blocales.Problema):
         #
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
-        #
-        return 0
+        penalizacion_total = 0
+        distancia_minima = 30
+
+        vertices = list(estado_dic.keys())
+        for i in range(len(vertices)):
+            for j in range(i + 1, len(vertices)):
+                v1, v2 = vertices[i], vertices[j]
+                x1, y1 = estado_dic[v1]
+                x2, y2 = estado_dic[v2]
+                distancia = math.hypot(x2 - x1, y2 - y1)
+
+                if distancia < distancia_minima:
+                    penalizacion = (distancia_minima - distancia) ** 2
+                    penalizacion_total += penalizacion
+
+        return penalizacion_total
 
     def estado2dic(self, estado):
         """
@@ -415,6 +485,14 @@ def main():
     #
     # ------ IMPLEMENTA AQUI TU CÓDIGO ---------------------------------------
     #
+
+def enfriamiento_logaritmico(T0, iteracion):
+    """
+    Enfriamiento logarítmico según Kirkpatrick.
+    T0: temperatura inicial
+    iteracion: número de iteración actual
+    """
+    return T0 / math.log(iteracion + 2)
 
 
 if __name__ == '__main__':
