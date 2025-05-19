@@ -19,13 +19,14 @@ $pip install pillow
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
+__author__ = 'lenika montoya'
 
 import blocales
 import random
 import itertools
 import math
 import time
+import statistics
 from PIL import Image, ImageDraw
 
 
@@ -65,7 +66,7 @@ class problema_grafica_grafo(blocales.Problema):
 
            s = [s(1), s(2),..., s(2*len(vertices))],
 
-        en donde s(i) \in {10, 11, ..., self.dim - 10} es la posición
+        en donde s(i)  {10, 11, ..., self.dim - 10} es la posición
         en x del nodo i/2 si i es par, o la posicion en y
         del nodo (i-1)/2 si i es non y(osease las parejas (x,y)).
 
@@ -94,8 +95,8 @@ class problema_grafica_grafo(blocales.Problema):
                                 vecino[i] + random.randint(-10, 10)))
             yield tuple(vecino)
     
-    def vecino_aleatorio(self, estado, dmax=10):
         """
+    def vecino_aleatorio(self, estado, dmax=10):
         Encuentra un vecino en forma aleatoria. En estea primera
         versión lo que hacemos es tomar un valor aleatorio, y
         sumarle o restarle x pixeles al azar.
@@ -109,22 +110,45 @@ class problema_grafica_grafo(blocales.Problema):
                            vertice seleccionado
 
         @return: Una tupla con un estado vecino al estado de entrada.
-
-        """
-        vecino = list(estado)
+                vecino = list(estado)
         i = random.randint(0, len(vecino) - 1)
         vecino[i] = max(10,
                         min(self.dim - 10,
                             vecino[i] + random.randint(-dmax,  dmax)))
         return tuple(vecino)
 
-        #######################################################################
-        #                          20 PUNTOS
-        #######################################################################
-        # Por supuesto que esta no es la mejor manera de generar vecinos.
-        #
-        # Propon una manera alternativa de vecino_aleatorio y muestra que
-        # con tu propuesta se obtienen resultados mejores o en menor tiempo
+        """
+    def vecinos_aleatorio_2(self, estado, dmax=10):
+        vecino = list(estado)
+        n = len(self.vertices)
+        v = random.randint(0, n - 1)  
+        dx = random.randint(-dmax, dmax)
+        dy = random.randint(-dmax, dmax)
+
+        x_idx = 2 * v
+        y_idx = 2 * v + 1
+
+        vecino[x_idx] = max(10, min(self.dim - 10, vecino[x_idx] + dx))            
+        vecino[y_idx] = max(10, min(self.dim - 10, vecino[y_idx] + dy))
+
+        return tuple(vecino)
+
+    def prueba_vecinos(problema, vecino_fn, repeticiones=20):
+        resultados = []
+        for _ in range(repeticiones):
+            estado_ini = problema.estado_aleatorio()
+            estado_actual = estado_ini
+            costo_actual = problema.costo(estado_actual)
+
+            for _ in range(1000):  # número fijo de iteraciones
+                vecino = vecino_fn(estado_actual)
+                costo_vecino = problema.costo(vecino)
+                if costo_vecino < costo_actual:
+                    estado_actual = vecino
+                    costo_actual = costo_vecino
+
+            resultados.append(costo_actual)
+        return resultados
 
     def costo(self, estado):
         """
@@ -139,13 +163,12 @@ class problema_grafica_grafo(blocales.Problema):
         @return: Un número flotante con el costo del estado.
 
         """
-
         # Inicializa fáctores lineales para los criterios más importantes
         # (default solo cuanta el criterio 1)
         K1 = 1.0
-        K2 = 0.0
-        K3 = 0.0
-        K4 = 0.0
+        K2 = 0.05
+        K3 = 0.5
+        K4 = 0.1
 
         # Genera un diccionario con el estado y la posición
         estado_dic = self.estado2dic(estado)
@@ -250,22 +273,6 @@ class problema_grafica_grafo(blocales.Problema):
                 total += (1.0 - (dist / min_dist))
         return total
 
-    def angulo_aristas(self, estado_dic):
-        """
-        A partir de una posicion "estado", devuelve una penalizacion
-        proporcional a cada angulo entre aristas menor a pi/6 rad (30
-        grados). Los angulos de pi/6 o mayores no llevan ninguna
-        penalización, y la penalizacion crece conforme el angulo es
-        menor.
-
-        @param estado_dic: Diccionario cuyas llaves son los vértices
-                           del grafo y cuyos valores es una tupla con
-                           la posición (x, y) de ese vértice en el
-                           dibujo.
-
-        @return: Un número.
-
-        """
         #######################################################################
         #                          20 PUNTOS
         #######################################################################
@@ -278,7 +285,45 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
         #
-        return 0
+
+    def angulo_aristas(self, estado_dic):
+        """
+        Penaliza ángulos agudos entre aristas conectadas al mismo vértice.
+        Ángulos menores a 30 grados son penalizados.
+
+        @param estado_dic: Diccionario con posiciones de los vértices.
+        @return: Penalización total.
+        """
+        penalizacion = 0.0
+        umbral = math.pi / 6  # 30 grados
+
+        for v in self.vertices:
+            # Encuentra todas las aristas conectadas a v
+            adyacentes = [a for a in self.aristas if v in a]
+            if len(adyacentes) < 2:
+                continue  # No hay pares de aristas para este vértice
+
+            vectores = []
+            x0, y0 = estado_dic[v]
+            for a in adyacentes:
+                otro = a[1] if a[0] == v else a[0]
+                x1, y1 = estado_dic[otro]
+                dx, dy = x1 - x0, y1 - y0
+                norma = math.hypot(dx, dy)
+                if norma == 0:
+                    continue
+                vectores.append((dx / norma, dy / norma))
+
+            # Calcula ángulos entre cada par de vectores
+            for v1, v2 in itertools.combinations(vectores, 2):
+                dp = v1[0]*v2[0] + v1[1]*v2[1]
+                dp = max(min(dp, 1), -1)  # Evita dominio inválido
+                angulo = math.acos(dp)
+
+                if angulo < umbral:
+                    penalizacion += (umbral - angulo)**2  # Penalización cuadrática
+
+            return penalizacion
 
     def criterio_propio(self, estado_dic):
         """
@@ -305,6 +350,16 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------
         #
+        # Este criterio penaliza la distancia entre los vértices y el"""
+        margen = 20
+        penalizacion = 0
+        for (x, y) in estado_dic.values():
+            if x < margen or x > self.dim - margen:
+                penalizacion += 1
+            if y < margen or y > self.dim - margen:
+                penalizacion += 1
+        return penalizacion
+
         return 0
 
     def estado2dic(self, estado):
@@ -398,10 +453,12 @@ def main():
     #                          20 PUNTOS
     ##########################################################################
     # ¿Que valores para ajustar el temple simulado son los que mejor
-    # resultado dan?
-    #
+    # resultado dan? 
+    # Entre más iteraciones mejor, pero el tiempo de
+    # ejecución aumenta. 
     # ¿Que encuentras en los resultados?, ¿Cual es el criterio mas importante?
-    #
+    # El algoritmo mejora mucho al bajar la temperatura poco a poco.
+    
     # En general para obtener mejores resultados del temple simulado,
     # es necesario utilizar una función de calendarización acorde con
     # el metodo en que se genera el vecino aleatorio.  Existen en la
