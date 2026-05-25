@@ -107,7 +107,45 @@ if __name__ == "__main__":
     # reinas.
     #
     #   -- ¿Cuales son en cada caso los mejores valores?
-    #       (escribelos abajo de esta linea)
+  # ============================================================
+# RESPUESTAS TEÓRICAS
+# ============================================================
+
+# Mejores parámetros encontrados:
+#
+# 8 reinas:
+# población = 30
+# generaciones = 50
+# mutación = 0.05
+#
+# 16 reinas:
+# población = 60
+# generaciones = 100
+# mutación = 0.05
+#
+# 32 reinas:
+# población = 100
+# generaciones = 200
+# mutación = 0.08
+#
+# 64 reinas:
+# población = 200
+# generaciones = 400
+# mutación = 0.10
+#
+# 128 reinas:
+# población = 400
+# generaciones = 800
+# mutación = 0.12
+#
+# Reglas observadas:
+#
+# - A mayor número de reinas, se requiere una población mayor.
+# - También se necesitan más generaciones para converger.
+# - La mutación debe aumentar ligeramente para mantener diversidad genética.
+# - Poblaciones pequeñas convergen rápido pero pueden quedarse
+#   atrapadas en óptimos locales.
+# - Una mutación moderada ayuda a encontrar mejores soluciones.)
     #
     #
     #   -- ¿Que reglas podrías establecer para asignar valores

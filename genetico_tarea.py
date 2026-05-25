@@ -137,7 +137,26 @@ class GeneticoPermutacionesPropio(genetico.Genetico):
 
         self.población = nueva[:self.n_población]
 
+# ============================================================
+# DESCRIPCIÓN DEL ALGORITMO GENÉTICO PROPUESTO
+# ============================================================
 
+# El algoritmo implementado utiliza:
+#
+# - Selección por torneo.
+# - Cruza tipo Order Crossover (OX).
+# - Mutación por intercambio de posiciones.
+# - Reemplazo generacional basado en adaptación.
+#
+# Este enfoque mantiene soluciones válidas para problemas
+# de permutaciones como N-Reinas y evita cromosomas inválidos.
+#
+# La selección por torneo permitió mantener presión selectiva
+# sin perder demasiada diversidad genética.
+#
+# La cruza OX conservó subsecuencias válidas de los padres.
+#
+# La mutación ayudó a evitar convergencia prematura.
 if __name__ == "__main__":
 
     g_propio = GeneticoPermutacionesPropio(
