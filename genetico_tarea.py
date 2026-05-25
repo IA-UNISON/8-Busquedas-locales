@@ -1,145 +1,167 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """
 genetico_tarea.py
 -----------------
 
-En este módulo vas a desarrollar tu propio algoritmo
-genético para resolver problemas de permutaciones
-
+Algoritmo genético propio para problemas de permutaciones.
 """
 
 import random
 import genetico
 
-__author__ = 'Tu nombre'
+__author__ = 'Rosario Luna Ortiz'
 
 
 class GeneticoPermutacionesPropio(genetico.Genetico):
-    """
-    Clase con un algoritmo genético adaptado a problemas de permutaciones
 
-    """
-    def __init__(self, problema, n_población):
-        """
-        Aqui puedes poner algunos de los parámetros
-        que quieras utilizar en tu clase
+    def __init__(self,
+                 problema,
+                 n_población,
+                 prob_mutacion=0.1):
 
-        Para esta tarea vamos a cambiar la forma de representación
-        para que se puedan utilizar operadores clásicos (esto implica
-        reescribir los métodos estáticos cadea_a_estado y
-        estado_a_cadena).
+        self.nombre = 'Genético propio'
+        self.prob_mutacion = prob_mutacion
 
-        """
-        self.nombre = 'propuesto por el alumno'
         super().__init__(problema, n_población)
-        #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO -----------------------------------
-        #
 
     @staticmethod
     def estado_a_cadena(estado):
-        """
-        Convierte un estado a una cadena de cromosomas independiente
-        del problema de permutación
 
-        @param estado: Una tupla con un estado
-        @return: Una lista con una cadena de caracteres
-
-        """
-        #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO --------------------------------
-        #
-        raise NotImplementedError("¡Este metodo debe ser implementado!")
+        return list(estado)
 
     @staticmethod
     def cadena_a_estado(cadena):
-        """
-        Convierte una cadena de cromosomas a un estado donde el estado es
-        una posible solución a un problema de permutaciones
 
-        @param cadena: Una lista de cromosomas o valores
-        @return: Una tupla con un estado válido
+        return tuple(cadena)
 
-        """
-        #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO --------------------------------
-        #
-        raise NotImplementedError("¡Este metodo debe ser implementado!")
-
-        
     def adaptación(self, individuo):
-        """
-        Calcula la adaptación de un individuo al medio, mientras más adaptado
-        mejor, mayor costo, menor adaptción.
 
-        @param individuo: Una lista de cromosomas
-        @return un número con la adaptación del individuo
+        estado = self.cadena_a_estado(individuo)
 
-        """
-        #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO --------------------------------
-        #
-        raise NotImplementedError("¡Este metodo debe ser implementado!")
+        costo = self.problema.costo(estado)
+
+        return 1 / (1 + costo)
 
     def selección(self):
-        """
-        Seleccion de estados mediante método diferente a la ruleta
 
-        @return: Una lista con pares de indices de los individuo que se van
-                 a cruzar
+        seleccionados = []
 
-        """
-        #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO ----------------------------------
-        #
-        raise NotImplementedError("¡Este metodo debe ser implementado!")
+        for _ in range(self.n_población):
 
-    def cruza_individual(self, cadena1, cadena2):
-        """
-        @param cadena1: Una tupla con un individuo
-        @param cadena2: Una tupla con otro individuo
-        @return: Un individuo
+            a = random.randint(
+                0,
+                self.n_población - 1
+            )
 
-        """
-        #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO ----------------------------------
-        #
-        raise NotImplementedError("¡Este metodo debe ser implementado!")
+            b = random.randint(
+                0,
+                self.n_población - 1
+            )
+
+            if self.adaptación(self.población[a][1]) > \
+               self.adaptación(self.población[b][1]):
+
+                seleccionados.append(a)
+
+            else:
+                seleccionados.append(b)
+
+        return [
+            (seleccionados[i],
+             seleccionados[i + 1])
+
+            for i in range(
+                0,
+                len(seleccionados) - 1,
+                2
+            )
+        ]
+
+    def cruza_individual(self,
+                         cadena1,
+                         cadena2):
+
+        n = len(cadena1)
+
+        inicio = random.randint(0, n - 2)
+
+        fin = random.randint(inicio + 1, n - 1)
+
+        hijo = [-1] * n
+
+        hijo[inicio:fin] = cadena1[inicio:fin]
+
+        faltantes = [
+            x for x in cadena2
+            if x not in hijo
+        ]
+
+        indice = 0
+
+        for i in range(n):
+
+            if hijo[i] == -1:
+
+                hijo[i] = faltantes[indice]
+
+                indice += 1
+
+        return hijo
 
     def mutación(self, individuos):
-        """
 
-        @param poblacion: Una lista de individuos (listas).
+        for individuo in individuos:
 
-        @return: None, es efecto colateral mutando los individuos
-                 en la misma lista
+            if random.random() < self.prob_mutacion:
 
-        """
-        #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO --------------------------------
-        #
-        raise NotImplementedError("¡Este metodo debe ser implementado!")
+                i, j = random.sample(
+                    range(len(individuo)),
+                    2
+                )
+
+                individuo[i], individuo[j] = \
+                    individuo[j], individuo[i]
 
     def reemplazo_generacional(self, individuos):
-        """
-        Realiza el reemplazo generacional diferente al elitismo
 
-        @param individuos: Una lista de cromosomas de hijos que pueden
-                           usarse en el reemplazo
-        @return: None (todo lo cambia internamente)
+        hijos = [
+            (self.adaptación(individuo), individuo)
+            for individuo in individuos
+        ]
 
-        Por default usamos solo el elitismo de conservar al mejor, solo si es
-        mejor que lo que hemos encontrado hasta el momento.
+        nueva = self.población + hijos
 
-        """
-        #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO --------------------------------
-        #
+        nueva.sort(reverse=True)
 
+        self.población = nueva[:self.n_población]
 
+# ============================================================
+# DESCRIPCIÓN DEL ALGORITMO GENÉTICO PROPUESTO
+# ============================================================
+
+# El algoritmo implementado utiliza:
+#
+# - Selección por torneo.
+# - Cruza tipo Order Crossover (OX).
+# - Mutación por intercambio de posiciones.
+# - Reemplazo generacional basado en adaptación.
+#
+# Este enfoque mantiene soluciones válidas para problemas
+# de permutaciones como N-Reinas y evita cromosomas inválidos.
+#
+# La selección por torneo permitió mantener presión selectiva
+# sin perder demasiada diversidad genética.
+#
+# La cruza OX conservó subsecuencias válidas de los padres.
+#
+# La mutación ayudó a evitar convergencia prematura.
 if __name__ == "__main__":
-    # Un objeto genético con permutaciones con una población de
-    # 10 individuos y una probabilidad de mutacion de 0.1
-    g_propio = GeneticoPermutacionesPropio(genetico.ProblemaTonto(10), 10)
+
+    g_propio = GeneticoPermutacionesPropio(
+        genetico.ProblemaTonto(10),
+        10
+    )
+
     genetico.prueba(g_propio)
