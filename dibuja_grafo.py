@@ -278,7 +278,46 @@ class problema_grafica_grafo(blocales.Problema):
 
         imagen.save(filename)
 
+# ============================================================
+# RESPUESTAS TEÓRICAS
+# ============================================================
 
+# K1 = 10.0
+# K2 = 4.0
+# K3 = 2.0
+# K4 = 1.0
+#
+# Justificación:
+#
+# K1 tiene el mayor peso porque reducir cruces entre aristas
+# es el criterio más importante para mejorar la legibilidad
+# del grafo.
+#
+# K2 penaliza vértices demasiado cercanos para evitar
+# sobreposición de nodos.
+#
+# K3 penaliza ángulos pequeños entre aristas conectadas
+# al mismo vértice para mejorar claridad visual.
+#
+# K4 implementa un criterio propio que evita que los nodos
+# queden demasiado cerca de los bordes de la imagen.
+#
+# El criterio más importante fue el número de cruces,
+# ya que afecta directamente la claridad del grafo.
+#
+# Se utilizó una calendarización exponencial:
+#
+# T = 1000 * (0.95 ** i)
+#
+# porque permite una exploración amplia al inicio y una
+# convergencia gradual posteriormente.
+#
+# La mejora en vecino_aleatorio permitió mover vértices
+# completos, obteniendo mejores soluciones y menor tiempo
+# de convergencia.
+#
+# El temple simulado logró producir grafos visualmente
+# más organizados y con menos cruces.
 def main():
 
     vertices_sencillo = [
