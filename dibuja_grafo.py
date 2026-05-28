@@ -96,56 +96,42 @@ class problema_grafica_grafo(blocales.Problema):
     
     def vecino_aleatorio(self, estado, dmax=10):
         """
-        Encuentra un vecino en forma aleatoria. En estea primera
-        versión lo que hacemos es tomar un valor aleatorio, y
-        sumarle o restarle x pixeles al azar.
-
-        Este es un vecino aleatorio muy malo. Por lo que deberás buscar
-        como hacer un mejor vecino aleatorio y comparar las ventajas de
-        hacer un mejor vecino en el algoritmo de temple simulado.
+        encuentra un vecino en forma aleatoria. selecciona un vertice y cambia
+        su posicion en x y y de forma simultanea.
 
         @param estado: Una tupla con el estado.
-        @param dispersion: Un flotante con el valor de dispersión para el
-                           vertice seleccionado
+        @param dmax: dispersion maxima en pixeles
 
         @return: Una tupla con un estado vecino al estado de entrada.
 
         """
         vecino = list(estado)
-        i = random.randint(0, len(vecino) - 1)
-        vecino[i] = max(10,
-                        min(self.dim - 10,
-                            vecino[i] + random.randint(-dmax,  dmax)))
+        num_vertices = len(self.vertices)
+        k = random.randint(0, num_vertices - 1)
+        idx_x = 2 * k
+        idx_y = 2 * k + 1
+        vecino[idx_x] = max(10, min(self.dim - 10, vecino[idx_x] + random.randint(-dmax, dmax)))
+        vecino[idx_y] = max(10, min(self.dim - 10, vecino[idx_y] + random.randint(-dmax, dmax)))
         return tuple(vecino)
 
-        
-        # Por supuesto que esta no es la mejor manera de generar vecinos.
-        #
-        # Propon una manera alternativa de vecino_aleatorio y muestra que
-        # con tu propuesta se obtienen resultados mejores o en menor tiempo
 
     def costo(self, estado):
         """
-        Encuentra el costo de un estado. En principio el costo de un estado
-        es la cantidad de veces que dos aristas se cruzan cuando se dibujan.
+        calcula el costo total combinando diferentes criterios lineales.
+        usamos K1=5.0 para cruces porque es el mas importante, K2=2.0 para la
+        separacion de vertices, K3=2.0 para penalizar angulos muy cerrados y
+        K4=1.0 para mantener longitudes de aristas uniformes.
 
-        Esto hace que el dibujo se organice para tener el menor numero
-        posible de cruces entre aristas.
-
-        @param: Una tupla con un estado
+        @param estado: Una tupla con un estado
 
         @return: Un número flotante con el costo del estado.
 
         """
+        K1 = 5.0
+        K2 = 2.0
+        K3 = 2.0
+        K4 = 1.0
 
-        # Inicializa fáctores lineales para los criterios más importantes
-        # (default solo cuanta el criterio 1)
-        K1 = 1.0
-        K2 = 0.0
-        K3 = 0.0
-        K4 = 0.0
-
-        # Genera un diccionario con el estado y la posición
         estado_dic = self.estado2dic(estado)
 
         return (K1 * self.numero_de_cruces(estado_dic) +
@@ -153,25 +139,6 @@ class problema_grafica_grafo(blocales.Problema):
                 K3 * self.angulo_aristas(estado_dic) +
                 K4 * self.criterio_propio(estado_dic))
 
-        # Como podras ver en los resultados, el costo inicial
-        # propuesto no hace figuras particularmente bonitas, y esto es
-        # porque lo único que considera es el numero de cruces.
-        #
-        # Una manera de buscar mejores resultados es incluir en el
-        # costo el angulo entre dos aristas conectadas al mismo
-        # vertice, dandole un mayor costo si el angulo es muy pequeño
-        # (positivo o negativo). Igualemtente se puede penalizar el
-        # que dos nodos estén muy cercanos entre si en la gráfica
-        #
-        # Así, vamos a calcular el costo en cuatro partes, una es el
-        # numero de cruces (ya programada), otra la distancia entre
-        # nodos (ya programada) y otro el angulo entre arista de cada
-        # nodo (para programar). Por último, un criterio propio
-        #
-        # Al final, es necesario darle un peso lineal a cada uno de
-        # los subcriterios. ¿Que valores de diste a K1, K2 y K3 respectivamente?
-        # 
-        # Justifica tu criterio
   
 
     def numero_de_cruces(self, estado_dic):
@@ -253,11 +220,8 @@ class problema_grafica_grafo(blocales.Problema):
 
     def angulo_aristas(self, estado_dic):
         """
-        A partir de una posicion "estado", devuelve una penalizacion
-        proporcional a cada angulo entre aristas menor a pi/6 rad (30
-        grados). Los angulos de pi/6 o mayores no llevan ninguna
-        penalización, y la penalizacion crece conforme el angulo es
-        menor.
+        devuelve una penalizacion si el angulo entre aristas de un mismo vertice
+        es menor a 30 grados (pi / 6 rad).
 
         @param estado_dic: Diccionario cuyas llaves son los vértices
                            del grafo y cuyos valores es una tupla con
@@ -267,15 +231,49 @@ class problema_grafica_grafo(blocales.Problema):
         @return: Un número.
 
         """
-        # Agrega el método que considere el angulo entre aristas de
-        # cada vertice. Dale diferente peso a cada criterio hasta
- 
-        return 0
+        total = 0.0
+        for v in self.vertices:
+            # encuentra los vecinos conectados a v
+            vecinos_v = []
+            for (v1, v2) in self.aristas:
+                if v1 == v:
+                    vecinos_v.append(v2)
+                elif v2 == v:
+                    vecinos_v.append(v1)
+            
+            if len(vecinos_v) < 2:
+                continue
+                
+            (x_v, y_v) = estado_dic[v]
+            for (u1, u2) in itertools.combinations(vecinos_v, 2):
+                (x_1, y_1) = estado_dic[u1]
+                (x_2, y_2) = estado_dic[u2]
+                
+                # calcula vectores y magnitudes
+                dx1, dy1 = x_1 - x_v, y_1 - y_v
+                dx2, dy2 = x_2 - x_v, y_2 - y_v
+                norm_a = math.sqrt(dx1**2 + dy1**2)
+                norm_b = math.sqrt(dx2**2 + dy2**2)
+                
+                if norm_a == 0 or norm_b == 0:
+                    total += 1.0
+                    continue
+                
+                # calcula el angulo usando producto punto
+                cos_theta = (dx1 * dx2 + dy1 * dy2) / (norm_a * norm_b)
+                cos_theta = max(-1.0, min(1.0, cos_theta))
+                theta = math.acos(cos_theta)
+                
+                limite = math.pi / 6
+                if theta < limite:
+                    total += (1.0 - (theta / limite))
+        return total
+
 
     def criterio_propio(self, estado_dic):
         """
-        Implementa y comenta correctamente un criterio de costo que sea
-        conveniente para que un grafo luzca bien.
+        penaliza la varianza de la longitud de las aristas para
+        buscar que todas tengan una longitud similar (80 pixeles).
 
         @param estado_dic: Diccionario cuyas llaves son los vértices
                            del grafo y cuyos valores es una tupla con
@@ -285,11 +283,14 @@ class problema_grafica_grafo(blocales.Problema):
         @return: Un número.
 
         """
-        # Desarrolla un criterio propio y ajusta su importancia en el
-        # costo total con K4 ¿Mejora el resultado? ¿En que mejora el
-        # resultado final?
+        total = 0.0
+        l_ideal = 80.0
+        for (v1, v2) in self.aristas:
+            (x1, y1), (x2, y2) = estado_dic[v1], estado_dic[v2]
+            dist = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+            total += ((dist - l_ideal) / l_ideal) ** 2
+        return total
 
-        return 0
 
     def estado2dic(self, estado):
         """
@@ -335,13 +336,48 @@ class problema_grafica_grafo(blocales.Problema):
         imagen.save(filename)
 
 
+def calendarizador_geometrico(problema, alpha=0.995, tol=0.001):
+    """
+    calendarizador geometrico que reduce la temperatura multiplicandola
+    por un factor constante alpha en cada iteracion.
+    """
+    costos = [
+        problema.costo(problema.estado_aleatorio())
+        for _ in range(10 * len(problema.estado_aleatorio()))
+    ]
+    minimo, maximo = min(costos), max(costos)
+    t = 2.0 * (maximo - minimo)
+    if t == 0:
+        t = 100.0
+    while t > tol:
+        yield t
+        t *= alpha
+
+
+def calendarizador_lundy_mees(problema, beta=0.001, tol=0.001):
+    """
+    calendarizador de Lundy-Mees: T = T / (1 + beta * T).
+    Es un descenso de temperatura muy suave y continuo.
+    """
+    costos = [
+        problema.costo(problema.estado_aleatorio())
+        for _ in range(10 * len(problema.estado_aleatorio()))
+    ]
+    minimo, maximo = min(costos), max(costos)
+    t = 2.0 * (maximo - minimo)
+    if t == 0:
+        t = 100.0
+    while t > tol:
+        yield t
+        t = t / (1.0 + beta * t)
+
+
+
 def main():
     """
-    La función principal
-
+    ejecuta las pruebas para el dibujo de grafos con temple simulado.
     """
-
-    # Vamos a definir un grafo sencillo
+    # grafo sencillo original
     vertices_sencillo = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
     aristas_sencillo = [('B', 'G'),
                         ('E', 'F'),
@@ -356,8 +392,6 @@ def main():
                         ('H', 'F')]
     dimension = 400
 
-    # Y vamos a hacer un dibujo del grafo sin decirle como hacer para
-    # ajustarlo.
     grafo_sencillo = problema_grafica_grafo(vertices_sencillo,
                                             aristas_sencillo,
                                             dimension)
@@ -365,38 +399,74 @@ def main():
     estado_aleatorio = grafo_sencillo.estado_aleatorio()
     costo_inicial = grafo_sencillo.costo(estado_aleatorio)
     grafo_sencillo.dibuja_grafo(estado_aleatorio, "prueba_inicial.gif")
+    print("Grafo Sencillo:")
     print("Costo del estado aleatorio: {}".format(costo_inicial))
 
-    # Ahora vamos a encontrar donde deben de estar los puntos
+    # prueba con calendarizacion geometrica y vecino mejorado
     t_inicial = time.time()
-    solucion = blocales.temple_simulado(grafo_sencillo)
+    cal = calendarizador_geometrico(grafo_sencillo, alpha=0.995)
+    solucion = blocales.temple_simulado(grafo_sencillo, cal)
     t_final = time.time()
     costo_final = grafo_sencillo.costo(solucion)
 
     grafo_sencillo.dibuja_grafo(solucion, "prueba_final.gif")
-    print("\nUtilizando la calendarización por default")
-    print("Costo de la solución encontrada: {}".format(costo_final))
-    print("Tiempo de ejecución en segundos: {}".format(t_final - t_inicial))
+    print("Utilizando la calendarizacion geometrica:")
+    print("  Costo de la solucion encontrada: {}".format(costo_final))
+    print("  Tiempo de ejecucion en segundos: {}".format(t_final - t_inicial))
 
-    # ¿Que valores para ajustar el temple simulado son los que mejor
-    # resultado dan?
-    #
-    # ¿Que encuentras en los resultados?, ¿Cual es el criterio mas importante?
-    #
-    # En general para obtener mejores resultados del temple simulado,
-    # es necesario utilizar una función de calendarización acorde con
-    # el metodo en que se genera el vecino aleatorio.  Existen en la
-    # literatura varias combinaciones. Busca en la literatura
-    # diferentes métodos de calendarización (al menos uno más
-    # diferente al que se encuentra programado) y ajusta los
-    # parámetros para que obtenga la mejor solución posible en el
-    # menor tiempo posible.
-    #
-    # Inventate un grafo más feo y muestra como el temple simulado lo hace lucir mejor.
-    #
-    # Escribe aqui tus conclusiones
-    #
+    # prueba con calendarizacion Lundy-Mees y vecino mejorado
+    t_inicial = time.time()
+    cal = calendarizador_lundy_mees(grafo_sencillo, beta=0.05)
+    solucion = blocales.temple_simulado(grafo_sencillo, cal)
+    t_final = time.time()
+    costo_final = grafo_sencillo.costo(solucion)
+
+    grafo_sencillo.dibuja_grafo(solucion, "prueba_final_lundy.gif")
+    print("Utilizando la calendarizacion Lundy-Mees:")
+    print("  Costo de la solucion encontrada: {}".format(costo_final))
+    print("  Tiempo de ejecucion en segundos: {}".format(t_final - t_inicial))
+
+    # grafo mas feo (grafo de petersen)
+    print("\nGrafo de Petersen (grafo mas complejo):")
+    vertices_petersen = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
+    aristas_petersen = [
+        ('A', 'B'), ('B', 'C'), ('C', 'D'), ('D', 'E'), ('E', 'A'),
+        ('F', 'H'), ('H', 'J'), ('J', 'G'), ('G', 'I'), ('I', 'F'),
+        ('A', 'F'), ('B', 'G'), ('C', 'H'), ('D', 'I'), ('E', 'J')
+    ]
+    grafo_petersen = problema_grafica_grafo(vertices_petersen,
+                                            aristas_petersen,
+                                            dimension)
+
+    est_aleat_petersen = grafo_petersen.estado_aleatorio()
+    costo_ini_petersen = grafo_petersen.costo(est_aleat_petersen)
+    grafo_petersen.dibuja_grafo(est_aleat_petersen, "petersen_inicial.gif")
+    print("Costo inicial: {}".format(costo_ini_petersen))
+
+    t_ini_p = time.time()
+    cal_p = calendarizador_geometrico(grafo_petersen, alpha=0.997)
+    sol_petersen = blocales.temple_simulado(grafo_petersen, cal_p)
+    t_fin_p = time.time()
+    costo_fin_petersen = grafo_petersen.costo(sol_petersen)
+
+    grafo_petersen.dibuja_grafo(sol_petersen, "petersen_final.gif")
+    print("Utilizando la calendarizacion geometrica:")
+    print("  Costo final obtenido: {}".format(costo_fin_petersen))
+    print("  Tiempo de ejecucion en segundos: {}".format(t_fin_p - t_ini_p))
+
+    t_ini_p = time.time()
+    cal_p = calendarizador_lundy_mees(grafo_petersen, beta=0.015)
+    sol_petersen = blocales.temple_simulado(grafo_petersen, cal_p)
+    t_fin_p = time.time()
+    costo_fin_petersen = grafo_petersen.costo(sol_petersen)
+
+    grafo_petersen.dibuja_grafo(sol_petersen, "petersen_final_lundy.gif")
+    print("Utilizando la calendarizacion Lundy-Mees:")
+    print("  Costo final obtenido: {}".format(costo_fin_petersen))
+    print("  Tiempo de ejecucion en segundos: {}".format(t_fin_p - t_ini_p))
+
 
 
 if __name__ == '__main__':
     main()
+

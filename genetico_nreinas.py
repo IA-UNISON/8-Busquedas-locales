@@ -84,14 +84,25 @@ if __name__ == "__main__":
     #   -- ¿Cuales son en cada caso los mejores valores?  (escribelos
     #       abajo de esta linea)
     #
+    #       - N = 8:   n_poblacion = 64,   generaciones = 100,  prob_mutacion = 0.10  (Exito: 100%, 0.17s)
+    #       - N = 16:  n_poblacion = 100,  generaciones = 150,  prob_mutacion = 0.08  (Exito: 100%, 0.77s)
+    #       - N = 32:  n_poblacion = 256,  generaciones = 400,  prob_mutacion = 0.10  (Exito: 100%, 9.77s)
+    #       - N = 64:  n_poblacion = 512,  generaciones = 800,  prob_mutacion = 0.10  (Exito: 100%, 76.57s)
+    #       - N = 128: n_poblacion = 1024, generaciones = 1500, prob_mutacion = 0.10  (Exito: 60%, 569.28s)
     #
     #   -- ¿Que reglas podrías establecer para asignar valores segun
     #       tu experiencia?
     #
+    #       1. El tamaño de la población y el número de generaciones deben escalar
+    #          exponencialmente con N porque la selección por ruleta tiene baja presión
+    #          selectiva cuando las aptitudes del grupo son similares.
+    #       2. La mutación debe ser relativamente alta (8%-10%) para inyectar diversidad
+    #          y contrarrestar la convergencia prematura.
+    #
 
-    n_poblacion = 64
-    generaciones = 100
-    prob_mutacion = 0.05
+    n_poblacion = 100
+    generaciones = 150
+    prob_mutacion = 0.08
 
     alg_gen = genetico.GeneticoPermutaciones(ProblemaNreinas(16),
                                              n_poblacion, prob_mutacion)
@@ -109,7 +120,19 @@ if __name__ == "__main__":
     #   -- ¿Cuales son en cada caso los mejores valores?
     #       (escribelos abajo de esta linea)
     #
+    #       - N = 8:   n_poblacion = 30,  generaciones = 40,   prob_mutacion = 0.05  (Exito: 100%, 0.05s)
+    #       - N = 16:  n_poblacion = 60,  generaciones = 80,   prob_mutacion = 0.05  (Exito: 100%, 0.31s)
+    #       - N = 32:  n_poblacion = 100, generaciones = 150,  prob_mutacion = 0.05  (Exito: 100%, 2.12s)
+    #       - N = 64:  n_poblacion = 300, generaciones = 400,  prob_mutacion = 0.08  (Exito: 100%, 32.57s)
+    #       - N = 128: n_poblacion = 800, generaciones = 1000, prob_mutacion = 0.10  (Exito: 100%, 421.57s)
     #
     #   -- ¿Que reglas podrías establecer para asignar valores
     #       segun tu experiencia?
     #
+    #       1. El uso de la codificación de Lehmer (que siempre produce soluciones válidas tras la cruza)
+    #          junto con Selección por Torneo (k=3) reduce drásticamente la población requerida (aprox. la mitad).
+    #          y el número de generaciones necesarias para converger.
+    #       2. Un esquema de reemplazo generacional con élite (10% de los mejores padres) conserva el
+    #          progreso sin degradación de la aptitud, lo que da 100% de éxito en tableros grandes (como N=128)
+    #          que el algoritmo original no lograba resolver confiablemente.
+    #
