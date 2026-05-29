@@ -19,7 +19,7 @@ $pip install pillow
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
+__author__ = 'Alejandro Barreras Gutiérrez'
 
 import blocales
 import random
@@ -111,18 +111,31 @@ class problema_grafica_grafo(blocales.Problema):
         @return: Una tupla con un estado vecino al estado de entrada.
 
         """
-        vecino = list(estado)
-        i = random.randint(0, len(vecino) - 1)
-        vecino[i] = max(10,
-                        min(self.dim - 10,
-                            vecino[i] + random.randint(-dmax,  dmax)))
-        return tuple(vecino)
+        #vecino = list(estado)
+        #i = random.randint(0, len(vecino) - 1)
+        #vecino[i] = max(10,
+        #                min(self.dim - 10,
+        #                    vecino[i] + random.randint(-dmax,  dmax)))
+        #return tuple(vecino)
 
         
         # Por supuesto que esta no es la mejor manera de generar vecinos.
         #
         # Propon una manera alternativa de vecino_aleatorio y muestra que
         # con tu propuesta se obtienen resultados mejores o en menor tiempo
+
+        vecino = list(estado)
+        indice_vertice = random.randint(0, len(self.vertices) - 1)
+        ix = indice_vertice * 2
+        iy = indice_vertice * 2 + 1
+
+        nuevo_x = vecino[ix] + random.randint(-dmax, dmax)
+        nuevo_y = vecino[iy] + random.randint(-dmax, dmax)
+
+        vecino[ix] = max(10, min(self.dim - 10, nuevo_x))
+        vecino[iy] = max(10, min(self.dim - 10, nuevo_y))
+
+        return tuple(vecino)
 
     def costo(self, estado):
         """
@@ -140,10 +153,10 @@ class problema_grafica_grafo(blocales.Problema):
 
         # Inicializa fáctores lineales para los criterios más importantes
         # (default solo cuanta el criterio 1)
-        K1 = 1.0
-        K2 = 0.0
-        K3 = 0.0
-        K4 = 0.0
+        K1 = 30.0
+        K2 = 2.0
+        K3 = 5.0
+        K4 = 1.0
 
         # Genera un diccionario con el estado y la posición
         estado_dic = self.estado2dic(estado)
@@ -172,6 +185,8 @@ class problema_grafica_grafo(blocales.Problema):
         # los subcriterios. ¿Que valores de diste a K1, K2 y K3 respectivamente?
         # 
         # Justifica tu criterio
+        #
+        # 
   
 
     def numero_de_cruces(self, estado_dic):
@@ -269,8 +284,40 @@ class problema_grafica_grafo(blocales.Problema):
         """
         # Agrega el método que considere el angulo entre aristas de
         # cada vertice. Dale diferente peso a cada criterio hasta
- 
-        return 0
+
+        angulo_critico = math.pi / 6
+        total = 0
+
+        for v in self.vertices:
+            aristas_v = [arista for arista in self.aristas if v in arista]
+            n = len(aristas_v)
+            
+            for i in range(n):
+                for j in range(i + 1, n):
+                    aristaA = aristas_v[i]
+                    aristaB = aristas_v[j]
+
+                    otro_A = aristaA[1] if aristaA[0] == v else aristaA[0]
+                    otro_B = aristaB[1] if aristaB[0] == v else aristaB[0]
+
+                    x_v, y_v = estado_dic[v]
+                    v1x, v1y = estado_dic[otro_A][0] - x_v, estado_dic[otro_A][1] - y_v
+                    v2x, v2y = estado_dic[otro_B][0] - x_v, estado_dic[otro_B][1] - y_v
+
+                    magnitud1 = math.sqrt(v1x**2 + v1y**2)
+                    magnitud2 = math.sqrt(v2x**2 + v2y**2)
+                    if magnitud1 == 0 or magnitud2 == 0:
+                        continue
+
+                    producto_punto = v1x * v2x + v1y * v2y
+
+                    cos_theta = producto_punto / (magnitud1 * magnitud2)
+                    cos_critico = 0.866
+
+                    if cos_theta < cos_critico:
+                        penalizacion = (cos_theta - cos_critico) / (1.0 - cos_critico)
+                        total += penalizacion
+        return total
 
     def criterio_propio(self, estado_dic):
         """
@@ -288,8 +335,15 @@ class problema_grafica_grafo(blocales.Problema):
         # Desarrolla un criterio propio y ajusta su importancia en el
         # costo total con K4 ¿Mejora el resultado? ¿En que mejora el
         # resultado final?
+        
+        borde = 50
+        total = 0
+        for v in self.vertices:
+            x, y = estado_dic[v]
+            if x < borde or x > self.dim - borde or y < borde or y > self.dim - borde:
+                total += 1
 
-        return 0
+        return total
 
     def estado2dic(self, estado):
         """
@@ -369,14 +423,19 @@ def main():
 
     # Ahora vamos a encontrar donde deben de estar los puntos
     t_inicial = time.time()
-    solucion = blocales.temple_simulado(grafo_sencillo)
+    solucion_sencilla = blocales.temple_simulado(grafo_sencillo)
     t_final = time.time()
-    costo_final = grafo_sencillo.costo(solucion)
 
-    grafo_sencillo.dibuja_grafo(solucion, "prueba_final.gif")
+    grafo_sencillo.dibuja_grafo(solucion_sencilla, "prueba_final.gif")
     print("\nUtilizando la calendarización por default")
     print("Costo de la solución encontrada: {}".format(costo_final))
     print("Tiempo de ejecución en segundos: {}".format(t_final - t_inicial))
+
+    T_ini = 1000.0
+    alpha = 0.995
+    iteraciones = 100000
+    calendarizador_geo = (T_ini * (alpha ** i) for i in range(iteraciones))
+
 
     # ¿Que valores para ajustar el temple simulado son los que mejor
     # resultado dan?

@@ -89,9 +89,9 @@ if __name__ == "__main__":
     #       tu experiencia?
     #
 
-    n_poblacion = 64
-    generaciones = 100
-    prob_mutacion = 0.05
+    n_poblacion = 250
+    generaciones = 1000
+    prob_mutacion = 0.5
 
     alg_gen = genetico.GeneticoPermutaciones(ProblemaNreinas(16),
                                              n_poblacion, prob_mutacion)
