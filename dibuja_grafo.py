@@ -19,7 +19,7 @@ $pip install pillow
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
+__author__ = 'Juan Pablo Zurita Murillo'
 
 import blocales
 import random
@@ -65,7 +65,7 @@ class problema_grafica_grafo(blocales.Problema):
 
            s = [s(1), s(2),..., s(2*len(vertices))],
 
-        en donde s(i) \in {10, 11, ..., self.dim - 10} es la posición
+        en donde s(i) in {10, 11, ..., self.dim - 10} es la posición
         en x del nodo i/2 si i es par, o la posicion en y
         del nodo (i-1)/2 si i es non y(osease las parejas (x,y)).
 
@@ -96,13 +96,8 @@ class problema_grafica_grafo(blocales.Problema):
     
     def vecino_aleatorio(self, estado, dmax=10):
         """
-        Encuentra un vecino en forma aleatoria. En estea primera
-        versión lo que hacemos es tomar un valor aleatorio, y
-        sumarle o restarle x pixeles al azar.
-
-        Este es un vecino aleatorio muy malo. Por lo que deberás buscar
-        como hacer un mejor vecino aleatorio y comparar las ventajas de
-        hacer un mejor vecino en el algoritmo de temple simulado.
+        Encuentra un vecino en forma aleatoria. Lo que hacemos es tomar un valor
+        aleatorio, y sumarle o restarle x pixeles al azar.
 
         @param estado: Una tupla con el estado.
         @param dispersion: Un flotante con el valor de dispersión para el
@@ -110,6 +105,31 @@ class problema_grafica_grafo(blocales.Problema):
 
         @return: Una tupla con un estado vecino al estado de entrada.
 
+        """        
+        vecino = list(estado)
+        i = random.randint(0, len(vecino) - 1)
+        
+        # randint es distribución normal uniforme, que causa que
+        # los numeros salgan con chance igual. Entonces los resul-
+        # tados variaban mucho. Aquí se usa una distribución normal:
+        # los resultados van a variar menos y esto es mejor para
+        # el temple simulado.
+        desplazamiento = int(random.gauss(0, dmax / 3.0))
+        
+        vecino[i] = max(10, min(self.dim - 10, vecino[i] + desplazamiento))
+        return tuple(vecino)
+ 
+    def vecino_aleatorio_viejo(self, estado, dmax=10):
+        """
+        Este es un vecino aleatorio muy malo. Encuentra un vecino en forma
+        aleatoria. Lo que hacemos es tomar un valor aleatorio, y sumarle o
+        restarle x pixeles al azar. Conservado para pruebas en el futuro.
+        
+        @param estado: Una tupla con el estado.
+        @param dispersion: Un flotante con el valor de dispersión para el
+                           vertice seleccionado
+
+        @return: Una tupla con un estado vecino al estado de entrada.
         """
         vecino = list(estado)
         i = random.randint(0, len(vecino) - 1)
@@ -117,12 +137,6 @@ class problema_grafica_grafo(blocales.Problema):
                         min(self.dim - 10,
                             vecino[i] + random.randint(-dmax,  dmax)))
         return tuple(vecino)
-
-        
-        # Por supuesto que esta no es la mejor manera de generar vecinos.
-        #
-        # Propon una manera alternativa de vecino_aleatorio y muestra que
-        # con tu propuesta se obtienen resultados mejores o en menor tiempo
 
     def costo(self, estado):
         """
@@ -140,10 +154,11 @@ class problema_grafica_grafo(blocales.Problema):
 
         # Inicializa fáctores lineales para los criterios más importantes
         # (default solo cuanta el criterio 1)
-        K1 = 1.0
-        K2 = 0.0
-        K3 = 0.0
-        K4 = 0.0
+        K1 = 5
+        K2 = 2
+        K3 = 1
+        K4 = 0.5
+        K5 = 1.5
 
         # Genera un diccionario con el estado y la posición
         estado_dic = self.estado2dic(estado)
@@ -151,7 +166,8 @@ class problema_grafica_grafo(blocales.Problema):
         return (K1 * self.numero_de_cruces(estado_dic) +
                 K2 * self.separacion_vertices(estado_dic) +
                 K3 * self.angulo_aristas(estado_dic) +
-                K4 * self.criterio_propio(estado_dic))
+                K4 * self.excentricidad(estado_dic) +
+                K5 * self.longitud_aristas(estado_dic))
 
         # Como podras ver en los resultados, el costo inicial
         # propuesto no hace figuras particularmente bonitas, y esto es
@@ -172,7 +188,23 @@ class problema_grafica_grafo(blocales.Problema):
         # los subcriterios. ¿Que valores de diste a K1, K2 y K3 respectivamente?
         # 
         # Justifica tu criterio
-  
+
+        # K1 - El más alto porque los cruces son lo que más feo se ve, y en práctica
+        # es lo que más afecta la legibilidad de un grafo de este estilo.
+
+        # K2 - Similar a la razón del cruce, pero menos importante. Se ve feo si hay
+        # vértices/líneas muy pegadas, aunque no se estén cruzando.
+
+        # K3 - Va más por la estética, pero igual importante para que se pueda leer
+        # bien. Los ángulos muy agudos pueden crear figuras extrañas.
+
+        # K5 - Este criterio ayuda principalmente con los nodos hojas (en el ejemplo
+        # suele ser la D). Los nodos hojas tienden a irse muy lejos de los demás y es-
+        # to ayuda en esos casos.
+
+        # K4 - Es el menos importante porque los cuatro primeros generan resultados
+        # buenos en general, pero por preferencia personal dispersa los vértices
+        # hacia las orillas un poco más.
 
     def numero_de_cruces(self, estado_dic):
         """
@@ -251,7 +283,7 @@ class problema_grafica_grafo(blocales.Problema):
                 total += (1.0 - (dist / min_dist))
         return total
 
-    def angulo_aristas(self, estado_dic):
+    def angulo_aristas(self, estado_dic, min_angulo=math.pi/6):
         """
         A partir de una posicion "estado", devuelve una penalizacion
         proporcional a cada angulo entre aristas menor a pi/6 rad (30
@@ -267,20 +299,51 @@ class problema_grafica_grafo(blocales.Problema):
         @return: Un número.
 
         """
-        # Agrega el método que considere el angulo entre aristas de
-        # cada vertice. Dale diferente peso a cada criterio hasta
- 
-        return 0
+        total = 0
 
-    def criterio_propio(self, estado_dic):
+        for vertice in self.vertices:
+            vecinos = []
+            for (vertice_1, vertice_2) in self.aristas:
+                if vertice_1 == vertice:
+                    vecinos.append(vertice_2)
+                if vertice_2 == vertice:
+                    vecinos.append(vertice_1)
+
+            if len(vecinos) < 2:
+                continue
+
+            for (vecino_1, vecino_2) in itertools.combinations(vecinos, 2):
+                x0, y0 = estado_dic[vertice]
+                x1, y1 = estado_dic[vecino_1]
+                x2, y2 = estado_dic[vecino_2]
+
+                angulo_1 = math.atan2(y1 - y0, x1 - x0)
+                angulo_2 = math.atan2(y2 - y0, x2 - x0)
+
+                diferencia = abs(angulo_1 - angulo_2)
+
+                if diferencia > math.pi:
+                    diferencia = 2.0 * math.pi - diferencia
+
+                if diferencia < min_angulo:
+                    total += (1.0 - (diferencia / min_angulo))
+
+        return total
+
+    # criterio_propio, criterio propio    
+    def excentricidad(self, estado_dic, proporcion=0.1):
         """
-        Implementa y comenta correctamente un criterio de costo que sea
-        conveniente para que un grafo luzca bien.
+        Calcula el centro geométrico de la imagen y penaliza vértices
+        cercanos al centro. Trata de usar mejor el espacio completo de
+        la imagen.
 
         @param estado_dic: Diccionario cuyas llaves son los vértices
                            del grafo y cuyos valores es una tupla con
                            la posición (x, y) de ese vértice en el
                            dibujo.
+
+        @proporcion: Porcentaje de la dimensión que se considera acep-
+                     table.
 
         @return: Un número.
 
@@ -289,7 +352,49 @@ class problema_grafica_grafo(blocales.Problema):
         # costo total con K4 ¿Mejora el resultado? ¿En que mejora el
         # resultado final?
 
-        return 0
+        # Personalmente prefiero una gráfica más dispersa, asi que
+        # si considero que la mejora.
+
+        x0 = self.dim/2
+        y0 = self.dim/2
+        
+        total = 0
+
+        for i in estado_dic:
+            x, y = estado_dic[i]
+
+            distancia = math.sqrt((x-x0)**2 + (y-y0)**2) + 0.001
+            if distancia < self.dim * proporcion:
+                total += 1/distancia
+
+        return total
+    
+    def longitud_aristas(self, estado_dic, longitud_ideal=180):
+        """
+        Si una arista es más larga que la longitud ideal, añade una penali-
+        zación proporcional al exceso.
+        
+        @param estado_dic: Diccionario cuyas llaves son los vértices
+                    del grafo y cuyos valores es una tupla con
+                    la posición (x, y) de ese vértice en el
+                    dibujo.
+        
+        @param longitud_ideal: Distancia máxima tolerable antes de penalizar.
+        
+        @return: Un número
+        """
+        total = 0
+        
+        for (vertice_1, vertice_2) in self.aristas:
+            x1, y1 = estado_dic[vertice_1]
+            x2, y2 = estado_dic[vertice_2]
+            
+            distancia = math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+
+            if distancia > longitud_ideal:
+                total += (distancia - longitud_ideal) / longitud_ideal
+                
+        return total
 
     def estado2dic(self, estado):
         """
@@ -304,7 +409,7 @@ class problema_grafica_grafo(blocales.Problema):
         """
         return {self.vertices[i]: (estado[2 * i], estado[2 * i + 1])
                 for i in range(len(self.vertices))}
-
+    
     def dibuja_grafo(self, estado=None, filename="prueba.gif"):
         """
         Dibuja el grafo utilizando el modulo pillow, donde estado es una
@@ -334,13 +439,22 @@ class problema_grafica_grafo(blocales.Problema):
 
         imagen.save(filename)
 
+def calendar_lineal(T_max):
+    i = 0
+    while True:
+        yield T_max / (i + 1)
+        i += 1
 
-def main():
+def calendar_log(T_max):
+    i = 0
+    while True:
+        yield T_max / (math.log(i + 1) + 1)
+        i += 1
+
+def prueba():
     """
     La función principal
-
     """
-
     # Vamos a definir un grafo sencillo
     vertices_sencillo = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
     aristas_sencillo = [('B', 'G'),
@@ -363,20 +477,86 @@ def main():
                                             dimension)
 
     estado_aleatorio = grafo_sencillo.estado_aleatorio()
+
     costo_inicial = grafo_sencillo.costo(estado_aleatorio)
+
     grafo_sencillo.dibuja_grafo(estado_aleatorio, "prueba_inicial.gif")
-    print("Costo del estado aleatorio: {}".format(costo_inicial))
+
+    print("Costo del estado aleatorio 1: {}".format(costo_inicial))
 
     # Ahora vamos a encontrar donde deben de estar los puntos
     t_inicial = time.time()
-    solucion = blocales.temple_simulado(grafo_sencillo)
+
+    calendar = calendar_lineal(250)
+
+    solucion = blocales.temple_simulado(grafo_sencillo, calendarizador=calendar)
+
     t_final = time.time()
+
     costo_final = grafo_sencillo.costo(solucion)
 
     grafo_sencillo.dibuja_grafo(solucion, "prueba_final.gif")
-    print("\nUtilizando la calendarización por default")
-    print("Costo de la solución encontrada: {}".format(costo_final))
-    print("Tiempo de ejecución en segundos: {}".format(t_final - t_inicial))
+
+    print("Costo de la solución encontrada 1: {}".format(costo_final))
+
+    print("Tiempo de ejecución en segundos 1: {}".format(t_final - t_inicial))
+    
+def prueba_2():
+    """
+    La función principal
+    """
+    # Vamos a definir un grafo sencillo
+    vertices_sencillo = ['1', '2', '3', '4', '5', '6', '7', '8']
+    aristas_sencillo = [('1', '2'),
+                        ('4', '6'),
+                        ('8', '3'),
+                        ('4', '7'),
+                        ('3', '8'),
+                        ('5', '2'),
+                        ('8', '1'),
+                        ('4', '3'),
+                        ('4', '1'),
+                        ('6', '1'),
+                        ('1', '7')]
+    dimension = 400
+
+    # Y vamos a hacer un dibujo del grafo sin decirle como hacer para
+    # ajustarlo.
+    grafo_sencillo = problema_grafica_grafo(vertices_sencillo,
+                                            aristas_sencillo,
+                                            dimension)
+
+    estado_aleatorio = grafo_sencillo.estado_aleatorio()
+
+    costo_inicial = grafo_sencillo.costo(estado_aleatorio)
+
+    grafo_sencillo.dibuja_grafo(estado_aleatorio, "prueba_2_inicial.gif")
+
+    print("Costo del estado aleatorio 2: {}".format(costo_inicial))
+
+    # Ahora vamos a encontrar donde deben de estar los puntos
+    t_inicial = time.time()
+
+    calendar = calendar_lineal(250)
+
+    solucion = blocales.temple_simulado(grafo_sencillo, calendarizador=calendar)
+
+    t_final = time.time()
+
+    costo_final = grafo_sencillo.costo(solucion)
+
+    grafo_sencillo.dibuja_grafo(solucion, "prueba_2_final.gif")
+
+    print("Costo de la solución encontrada 2: {}".format(costo_final))
+
+    print("Tiempo de ejecución en segundos 2: {}".format(t_final - t_inicial))
+
+if __name__ == '__main__':
+    
+    # Caso base
+    prueba()
+    # Grafo feo
+    prueba_2()
 
     # ¿Que valores para ajustar el temple simulado son los que mejor
     # resultado dan?
@@ -394,9 +574,11 @@ def main():
     #
     # Inventate un grafo más feo y muestra como el temple simulado lo hace lucir mejor.
     #
+    
     # Escribe aqui tus conclusiones
-    #
 
-
-if __name__ == '__main__':
-    main()
+    # El temple simulado definitivamente hace una diferencia en cuanto a la estética de
+    # los grafos. No estoy seguro si los parámetros K que decidí usar son los óptimos,
+    # pero incluso si no lo son, los resultados (_final) en comparación a las pruebas
+    # iniciales son mucho mejores. Se puede notar más la diferencia con el grafo "feo" 
+    # para el cual asigne las aristas al azar.
