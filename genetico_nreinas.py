@@ -12,7 +12,7 @@ from random import shuffle
 import genetico
 import genetico_tarea
 
-__author__ = 'juliowaissman'
+__author__ = 'Daniel Eduardo Alvarez Terrazas'
 
 class ProblemaNreinas(genetico.Problema):
     """
@@ -40,33 +40,136 @@ class ProblemaNreinas(genetico.Problema):
                     if abs(estado[i] - estado[j]) == abs(i - j)])
 
 
-def prueba_genetico(algo_genetico, n_generaciones, verbose=False):
+def prueba_genetico(algo_genetico, n_generaciones):
     """
-    Prueba de los algoritmos genéticos con el problema de las n reinas
-    desarrollado para búsquedas locales (tarea 2).
-
-    @param algo_genetico: objeto de la clase genetico.Genetico
-    @param n_generaciones: Generaciones (iteraciones) del algortimo
-    @param verbose: True si quieres desplegar informacion básica
-    @return: Un estado con la solucion (una permutacion de range(n)
-
+    ejecuta una prueba del algoritmo genetico
     """
+
     t_inicial = time()
+
     solucion = algo_genetico.busqueda(n_generaciones)
+
     t_final = time()
-    if verbose:
-        print("\nUtilizando el AG: {}".format(algo_genetico.nombre))
-        print("Con poblacion de dimensión {}".format(
-            algo_genetico.n_población))
-        print("Con {} generaciones".format(n_generaciones))
-        print("Costo de la solución encontrada: {}".format(
-            algo_genetico.problema.costo(solucion)))
-        print("Tiempo de ejecución en segundos: {}".format(
-            t_final - t_inicial))
-    return solucion
+
+    costo = algo_genetico.problema.costo(solucion)
+
+    return costo, t_final - t_inicial
+
+def automatizar_pruebas():
+
+    # pruebas para el algoritmo del profesor
+
+    pruebas_profe = [
+
+    (8, 100, 100, 0.03),
+
+    (16, 100, 150, 0.04),
+
+    (32, 120, 300, 0.02),
+
+    (64, 150, 500, 0.02),
+
+    (128, 180, 700, 0.02)
+
+    ]   
+
+
+    print("\n" + "=" * 65)
+    print(" ALGORITMO DEL PROFESOR (GENETICO PERMUTACIONES)")
+    print("=" * 65)
+
+    print(
+        f"{'reinas':<10}"
+        f"{'poblacion':<15}"
+        f"{'generaciones':<18}"
+        f"{'mutacion':<12}"
+        f"{'tiempo(s)':<12}"
+        f"{'costo':<8}"
+    )
+
+    print("-" * 65)
+
+    for r, pob, gen, mut in pruebas_profe:
+
+        alg_gen = genetico.GeneticoPermutaciones(
+
+            ProblemaNreinas(r),
+
+            pob,
+
+            mut
+        )
+
+        c, t = prueba_genetico(alg_gen, gen)
+
+        print(
+            f"{r:<10}"
+            f"{pob:<15}"
+            f"{gen:<18}"
+            f"{mut:<12.2f}"
+            f"{t:<12.2f}"
+            f"{c:<8}"
+        )
+
+    # pruebas para el algoritmo propuesto
+
+    pruebas_propio = [
+
+        (8, 80, 120, 0.03),
+
+        (16, 80, 180, 0.04),
+
+        (32, 100, 300, 0.05),
+
+        (64, 120, 500, 0.06),
+
+        (128, 150, 700, 0.07)
+
+    ]
+
+
+    print("\n" + "=" * 65)
+    print(" ALGORITMO PROPUESTO (PMX + ROTACION)")
+    print("=" * 65)
+
+    print(
+        f"{'reinas':<10}"
+        f"{'poblacion':<15}"
+        f"{'generaciones':<18}"
+        f"{'mutacion':<12}"
+        f"{'tiempo(s)':<12}"
+        f"{'costo':<8}"
+    )
+
+    print("-" * 65)
+
+    for r, pob, gen, mut in pruebas_propio:
+
+        alg_propio = genetico_tarea.GeneticoPermutacionesPropio(
+
+            ProblemaNreinas(r),
+
+            pob,
+
+            mut
+        )
+
+        c, t = prueba_genetico(alg_propio, gen)
+
+        print(
+            f"{r:<10}"
+            f"{pob:<15}"
+            f"{gen:<18}"
+            f"{mut:<12.2f}"
+            f"{t:<12.2f}"
+            f"{c:<8}"
+        )
+
 
 
 if __name__ == "__main__":
+
+    automatizar_pruebas()
 
     # Modifica los parámetro del algoritmo genetico que propuso el
     # profesor (el cual se conoce como genetico.GeneticoPermutaciones)
@@ -83,20 +186,28 @@ if __name__ == "__main__":
     #
     #   -- ¿Cuales son en cada caso los mejores valores?  (escribelos
     #       abajo de esta linea)
+    #  n = 8:   poblacion = 100, generaciones = 100, prob_mutacion = 0.03, tiempo = 0.12s, costo = 0
+    #  n = 16:  poblacion = 100, generaciones = 150, prob_mutacion = 0.04, tiempo = 0.27s, costo = 0
+    #  n = 32:  poblacion = 120, generaciones = 300, prob_mutacion = 0.02, tiempo = 1.65s, costo = 0
+    #  n = 64:  poblacion = 150, generaciones = 500, prob_mutacion = 0.02, tiempo = 11.39s, costo = 3
+    #  n = 128: poblacion = 180, generaciones = 700, prob_mutacion = 0.02, tiempo = 75.99s, costo = 25
     #
     #
     #   -- ¿Que reglas podrías establecer para asignar valores segun
     #       tu experiencia?
     #
+    # 1. conforme aumenta el numero de reinas, fue necesario aumentar
+    # principalmente el numero de generaciones para que el algoritmo
+    # tuviera mas tiempo de converger a mejores soluciones.
+    #
+    # 2. el tamaño de la poblacion tambien tuvo que aumentar, aunque de
+    # manera moderada, ya que poblaciones demasiado grandes aumentaban
+    # mucho el tiempo de ejecucion sin mejorar demasiado los resultados.
+    #
+    # 3. las probabilidades de mutacion mas bajas funcionaron mejor para
+    # tableros grandes, ya que mutaciones muy altas destruian soluciones
+    # buenas y hacian mas dificil la convergencia.
 
-    n_poblacion = 64
-    generaciones = 100
-    prob_mutacion = 0.05
-
-    alg_gen = genetico.GeneticoPermutaciones(ProblemaNreinas(16),
-                                             n_poblacion, prob_mutacion)
-
-    solucion = prueba_genetico(alg_gen, generaciones, True)
 
     # Modifica los parámetro del algoritmo genetico que propusite tu
     # mismo (el cual se conoce como
@@ -108,8 +219,31 @@ if __name__ == "__main__":
     #
     #   -- ¿Cuales son en cada caso los mejores valores?
     #       (escribelos abajo de esta linea)
+    #  n = 8:   poblacion = 80,  generaciones = 120, prob_mutacion = 0.03, tiempo = 0.08s, costo = 0
+    #  n = 16:  poblacion = 80,  generaciones = 180, prob_mutacion = 0.04, tiempo = 0.23s, costo = 0
+    #  n = 32:  poblacion = 100, generaciones = 300, prob_mutacion = 0.05, tiempo = 1.27s, costo = 0
+    #  n = 64:  poblacion = 120, generaciones = 500, prob_mutacion = 0.06, tiempo = 8.76s, costo = 1
+    #  n = 128: poblacion = 150, generaciones = 700, prob_mutacion = 0.07, tiempo = 58.44s, costo = 2
     #
     #
     #   -- ¿Que reglas podrías establecer para asignar valores
     #       segun tu experiencia?
     #
+    # 1. el algoritmo propuesto necesito menos poblacion que el algoritmo
+    # del profesor, ya que la cruza pmx y la seleccion por torneo
+    # mantuvieron mejor la diversidad genetica.
+    #
+    # 2. conforme aumentaba el tamaño del tablero, fue necesario aumentar
+    # las generaciones y ligeramente la mutacion para evitar que el
+    # algoritmo se estancara en optimos locales.
+    #
+    # 3. una mutacion demasiado baja hacia que la poblacion se volviera
+    # muy parecida entre si, mientras que una mutacion demasiado alta
+    # destruia soluciones buenas. por eso los mejores resultados se
+    # obtuvieron aumentando la mutacion poco a poco.
+    #
+    # 4. en general el algoritmo propuesto obtuvo mejores resultados en
+    # menos tiempo para tableros grandes, especialmente en 64 y 128 reinas.
+
+
+
