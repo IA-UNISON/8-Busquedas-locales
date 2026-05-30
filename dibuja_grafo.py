@@ -19,7 +19,7 @@ $pip install pillow
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
+__author__ = 'Karol Burrola'
 
 import blocales
 import random
@@ -93,8 +93,8 @@ class problema_grafica_grafo(blocales.Problema):
                             min(self.dim - 10,
                                 vecino[i] + random.randint(-10, 10)))
             yield tuple(vecino)
-    
-    def vecino_aleatorio(self, estado, dmax=10):
+
+    def vecino_aleatorio(self, estado, distancia_maxima=10):
         """
         Encuentra un vecino en forma aleatoria. En estea primera
         versión lo que hacemos es tomar un valor aleatorio, y
@@ -112,13 +112,16 @@ class problema_grafica_grafo(blocales.Problema):
 
         """
         vecino = list(estado)
-        i = random.randint(0, len(vecino) - 1)
-        vecino[i] = max(10,
-                        min(self.dim - 10,
-                            vecino[i] + random.randint(-dmax,  dmax)))
+        cantidad_nodos = len(self.vertices)
+        indice_vertice_azar = random.randint(0, cantidad_nodos - 1)
+        idx_x = 2 * indice_vertice_azar
+        idx_y = 2 * indice_vertice_azar + 1
+
+        vecino[idx_x] = max(10, min(self.dim - 10, vecino[idx_x] + random.randint(-distancia_maxima, distancia_maxima)))
+        vecino[idx_y] = max(10, min(self.dim - 10, vecino[idx_y] + random.randint(-distancia_maxima, distancia_maxima)))
+
         return tuple(vecino)
 
-        
         # Por supuesto que esta no es la mejor manera de generar vecinos.
         #
         # Propon una manera alternativa de vecino_aleatorio y muestra que
@@ -141,9 +144,9 @@ class problema_grafica_grafo(blocales.Problema):
         # Inicializa fáctores lineales para los criterios más importantes
         # (default solo cuanta el criterio 1)
         K1 = 1.0
-        K2 = 0.0
-        K3 = 0.0
-        K4 = 0.0
+        K2 = 2.0
+        K3 = 1.5
+        K4 = 0.5
 
         # Genera un diccionario con el estado y la posición
         estado_dic = self.estado2dic(estado)
@@ -170,9 +173,15 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # Al final, es necesario darle un peso lineal a cada uno de
         # los subcriterios. ¿Que valores de diste a K1, K2 y K3 respectivamente?
-        # 
+        #
         # Justifica tu criterio
-  
+
+        # Se dio mayor peso a la separación de vértices (K2) porque evitar nodos encimados mejora significativamente
+        # la legibilidad del grafo. Los ángulos (K3 = 1.5) ayudan a reducir colapsos visuales entre aristas, mientras
+        # que los cruces (K1 = 1.0) funcionan como una penalización básica. Finalmente, la longitud uniforme (K4 = 0.5)
+        # se consideró un aspecto más estético que estructural.
+
+
 
     def numero_de_cruces(self, estado_dic):
         """
@@ -267,10 +276,39 @@ class problema_grafica_grafo(blocales.Problema):
         @return: Un número.
 
         """
-        # Agrega el método que considere el angulo entre aristas de
-        # cada vertice. Dale diferente peso a cada criterio hasta
- 
-        return 0
+        total = 0.0
+        limite_angulo = math.pi / 6
+
+        for v in self.vertices:
+            nodos_conectados = []
+            for (v1, v2) in self.aristas:
+                if v1 == v:
+                    nodos_conectados.append(v2)
+                elif v2 == v:
+                    nodos_conectados.append(v1)
+
+            if len(nodos_conectados) < 2: continue
+
+            (x_v, y_v) = estado_dic[v]
+            for (u1, u2) in itertools.combinations(nodos_conectados, 2):
+                (x_1, y_1) = estado_dic[u1]
+                (x_2, y_2) = estado_dic[u2]
+
+                dx1, dy1 = x_1 - x_v, y_1 - y_v
+                dx2, dy2 = x_2 - x_v, y_2 - y_v
+                magnitud_a = math.sqrt(dx1 ** 2 + dy1 ** 2)
+                magnitud_b = math.sqrt(dx2 ** 2 + dy2 ** 2)
+
+                if magnitud_a == 0 or magnitud_b == 0: continue
+
+                coseno_angulo = (dx1 * dx2 + dy1 * dy2) / (magnitud_a * magnitud_b)
+                coseno_angulo = max(-1.0, min(1.0, coseno_angulo))
+                ang = math.acos(coseno_angulo)
+
+                if ang < limite_angulo:
+                    total += (1.0 - (ang / limite_angulo))
+        return total
+
 
     def criterio_propio(self, estado_dic):
         """
@@ -289,7 +327,21 @@ class problema_grafica_grafo(blocales.Problema):
         # costo total con K4 ¿Mejora el resultado? ¿En que mejora el
         # resultado final?
 
-        return 0
+        # El criterio añadido fue mantener una distancia objetivo entre nodos conectados, tomando como referencia una
+        # longitud aproximada de 90 píxeles por arista y evaluando cuánto se alejaba cada una de ese valor.
+
+        # La incorporación de este criterio mejoró notablemente el resultado final, ya que evita distribuciones
+        # desproporcionadas donde algunas conexiones quedan demasiado cortas y otras excesivamente largas. Con
+        # K4 = 0.5, el grafo adquiere una forma más uniforme, ordenada y equilibrada visualmente, logrando una
+        # mejor distribución dentro del espacio disponible.
+
+        total = 0.0
+        long = 90.0
+        for (v1, v2) in self.aristas:
+            (x1, y1), (x2, y2) = estado_dic[v1], estado_dic[v2]
+            distancia_tp = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+            total += abs(distancia_tp - long) / long
+        return total
 
     def estado2dic(self, estado):
         """
@@ -334,6 +386,25 @@ class problema_grafica_grafo(blocales.Problema):
 
         imagen.save(filename)
 
+def lundy_mees(problema, beta=0.01, tol=0.001):
+        muestras = 10 * len(problema.estado_aleatorio())
+        lista_costos = []
+
+        for _ in range(muestras):
+            estado_azar = problema.estado_aleatorio()
+            costo_azar = problema.costo(estado_azar)
+            lista_costos.append(costo_azar)
+
+        costo_minimo = min(lista_costos)
+        costo_maximo = max(lista_costos)
+
+        temp = 2.0 * (costo_maximo - costo_minimo)
+        if temp == 0:
+            temp = 100.0
+
+        while temp > tol:
+            yield temp
+            temp = temp / (1.0 + beta * temp)
 
 def main():
     """
@@ -395,8 +466,40 @@ def main():
     # Inventate un grafo más feo y muestra como el temple simulado lo hace lucir mejor.
     #
     # Escribe aqui tus conclusiones
-    #
+    # Los mejores resultados se lograron permitiendo movimientos más libres de los nodos y utilizando el algoritmo
+    # de enfriamiento Lundy-Mees usando T = T / (1 + beta * T) con beta=0.015, ya que evita que el algoritmo quede
+    # atrapado rápidamente en soluciones poco óptimas.
+    # El criterio más importante fue la separación entre vértices, porque mejora notablemente la claridad visual del
+    # grafo donde da una impresión de que se expande. El caso más difícil fue un grafo tipo rueda con muchos cruces,
+    # pero el algoritmo logró reorganizarlo de forma más ordenada y equilibrada.
 
+    print("Implementaciones solicitadas")
+    random.seed(700)
+
+    vertices_dif = ['Eje', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T']
+    aristas_dif = [
+        ('M', 'N'), ('N', 'O'), ('O', 'P'), ('P', 'Q'),
+        ('Q', 'R'), ('R', 'S'), ('S', 'T'), ('T', 'M'),
+        ('Eje', 'M'), ('Eje', 'N'), ('Eje', 'O'), ('Eje', 'P'),
+        ('Eje', 'Q'), ('Eje', 'R'), ('Eje', 'S'), ('Eje', 'T')
+    ]
+
+    grafo_dif = problema_grafica_grafo(vertices_dif, aristas_dif, dimension)
+    estado_ini_dif = grafo_dif.estado_aleatorio()
+
+    print("\nGrafo feo y desordenado - Rueda ")
+    print("Costo inicial desordenado: {:.4f}".format(grafo_dif.costo(estado_ini_dif)))
+    grafo_dif.dibuja_grafo(estado_ini_dif, "prueba_grafo_feo_inicial.gif")
+
+    t_inicial_dif = time.time()
+    calen_lundy = lundy_mees(grafo_dif, beta=0.015)
+    solu_dif = blocales.temple_simulado(grafo_dif, calendarizador=calen_lundy)
+    t_final_dif = time.time()
+
+    print("\nUtilizando la calendarización de Lundy-Mees:")
+    print("Costo de la solución encontrada: {:.4f}".format(grafo_dif.costo(solu_dif)))
+    print("Tiempo de ejecución en segundos: {:.4f}".format(t_final_dif - t_inicial_dif))
+    grafo_dif.dibuja_grafo(solu_dif, "prueba_grafo_feo_final.gif")
 
 if __name__ == '__main__':
     main()

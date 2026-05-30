@@ -11,6 +11,7 @@ from itertools import combinations
 from random import shuffle
 import genetico
 import genetico_tarea
+import random
 
 __author__ = 'juliowaissman'
 
@@ -67,7 +68,7 @@ def prueba_genetico(algo_genetico, n_generaciones, verbose=False):
 
 
 if __name__ == "__main__":
-
+    random.seed(804)
     # Modifica los parámetro del algoritmo genetico que propuso el
     # profesor (el cual se conoce como genetico.GeneticoPermutaciones)
     # buscando que el algoritmo encuentre SIEMPRE una solución óptima,
@@ -81,21 +82,54 @@ if __name__ == "__main__":
     # función que genere una tabla con las soluciones, o hazlo a mano
     # si eso ayuda a comprender mejor el algoritmo.
     #
-    #   -- ¿Cuales son en cada caso los mejores valores?  (escribelos
-    #       abajo de esta linea)
+    #   -- ¿Cuales son en cada caso los mejores valores?
+    #  N = 8:   n_poblacion = 50,  generaciones = 80,  prob_mutacion = 0.05  (Costo: 0, Tiempo: 0.12s)
+    #  N = 16:  n_poblacion = 100, generaciones = 150, prob_mutacion = 0.05  (Costo: 0, Tiempo: 1.21s)
+    #  N = 32:  n_poblacion = 120, generaciones = 300, prob_mutacion = 0.02  (Costo: 0, Tiempo: 6.01s)
+    #  N = 64:  n_poblacion = 150, generaciones = 500, prob_mutacion = 0.02  (Costo: 0, Tiempo: 38.97s)
+    #  N = 128: n_poblacion = 300, generaciones = 500, prob_mutacion = 0.05  (Costo: 39, Tiempo: 315.32s)
     #
-    #
-    #   -- ¿Que reglas podrías establecer para asignar valores segun
-    #       tu experiencia?
-    #
+    #   -- ¿Que reglas podrías establecer para asignar valores segun tu experiencia?
+    #   El algoritmo mantiene un buen rendimiento hasta tableros de tamaño N=64, pero en N=128 el espacio de búsqueda
+    #   crece bastante, por lo que 300 individuos y 500 generaciones resultan insuficientes. Para estos tamaños se
+    #   requiere aumentar significativamente la población y el número de generaciones para conservar la diversidad
+    #   genética y mejorar la convergencia. Además, n tableros de tamaño medio (N=32 y N=64), una tasa de mutación más
+    #   baja favorece la explotación de soluciones prometedoras, permitiendo que la cruza tenga mayor impacto y evitando
+    #   introducir ruido excesivo en la búsqueda.
 
-    n_poblacion = 64
-    generaciones = 100
+    n_poblacion = 50
+    generaciones = 80
     prob_mutacion = 0.05
+    alg_gen = genetico.GeneticoPermutaciones(ProblemaNreinas(8),
+                                             n_poblacion, prob_mutacion)
+    solucion = prueba_genetico(alg_gen, generaciones, True)
 
+    n_poblacion = 100
+    generaciones = 150
+    prob_mutacion = 0.05
     alg_gen = genetico.GeneticoPermutaciones(ProblemaNreinas(16),
                                              n_poblacion, prob_mutacion)
+    solucion = prueba_genetico(alg_gen, generaciones, True)
 
+    n_poblacion = 120
+    generaciones = 300
+    prob_mutacion = 0.02
+    alg_gen = genetico.GeneticoPermutaciones(ProblemaNreinas(32),
+                                             n_poblacion, prob_mutacion)
+    solucion = prueba_genetico(alg_gen, generaciones, True)
+
+    n_poblacion = 150
+    generaciones = 500
+    prob_mutacion = 0.02
+    alg_gen = genetico.GeneticoPermutaciones(ProblemaNreinas(64),
+                                             n_poblacion, prob_mutacion)
+    solucion = prueba_genetico(alg_gen, generaciones, True)
+
+    n_poblacion = 300
+    generaciones = 500
+    prob_mutacion = 0.05
+    alg_gen = genetico.GeneticoPermutaciones(ProblemaNreinas(128),
+                                             n_poblacion, prob_mutacion)
     solucion = prueba_genetico(alg_gen, generaciones, True)
 
     # Modifica los parámetro del algoritmo genetico que propusite tu
@@ -107,9 +141,68 @@ if __name__ == "__main__":
     # reinas.
     #
     #   -- ¿Cuales son en cada caso los mejores valores?
-    #       (escribelos abajo de esta linea)
+    #  N = 8:   n_poblacion = 50,  generaciones = 500,  (Costo: 0,  Tiempo: 0.21s)
+    #  N = 16:  n_poblacion = 100, generaciones = 1500, (Costo: 1,  Tiempo: 2.91s)
+    #  N = 32:  n_poblacion = 150, generaciones = 3000, (Costo: 6,  Tiempo: 30.50s)
+    #  N = 64:  n_poblacion = 200, generaciones = 6000, (Costo: 18, Tiempo: 275.83s)
+    #  N = 128: n_poblacion = 300, generaciones = 1200, (Costo: 49, Tiempo: 319.71s)
     #
     #
-    #   -- ¿Que reglas podrías establecer para asignar valores
-    #       segun tu experiencia?
-    #
+    #   -- ¿Que reglas podrías establecer para asignar valores segun tu experiencia?
+    #   La estrategia de cruza utilizada tiende a reducir rápidamente la variedad de soluciones en la población,
+    #   limitando la capacidad de búsqueda local. Como consecuencia, el algoritmo depende en gran medida de los
+    #   cataclismos para escapar del estancamiento y continuar explorando nuevas regiones del espacio de búsqueda. Otra
+    #   regla importante a destacar es que a medida que aumenta el tamaño del problema, encontrar la solución óptima
+    #   se vuelve muchísimo más difícil. Los resultados muestran que el algoritmo requiere una cantidad muy elevada de
+    #   generaciones para converger, por lo que su desempeño en instancias grandes depende de una capacidad
+    #   computacional significativamente mayor.
+
+    n_poblacion_propia = 50
+    generaciones_propia = 500
+    generaciones_a_tolerar_propia = 8
+    alg_gen_propio = genetico_tarea.GeneticoPermutacionesPropio(
+        ProblemaNreinas(8),
+        n_población=n_poblacion_propia,
+        generaciones_a_tolerar=generaciones_a_tolerar_propia
+    )
+    solucion_propia = prueba_genetico(alg_gen_propio, generaciones_propia, True)
+
+    n_poblacion_propia = 100
+    generaciones_propia = 1500
+    generaciones_a_tolerar_propia = 25
+    alg_gen_propio = genetico_tarea.GeneticoPermutacionesPropio(
+        ProblemaNreinas(16),
+        n_población=n_poblacion_propia,
+        generaciones_a_tolerar=generaciones_a_tolerar_propia
+    )
+    solucion_propia = prueba_genetico(alg_gen_propio, generaciones_propia, True)
+
+    n_poblacion_propia = 150
+    generaciones_propia = 3000
+    generaciones_a_tolerar_propia = 35
+    alg_gen_propio = genetico_tarea.GeneticoPermutacionesPropio(
+        ProblemaNreinas(32),
+        n_población=n_poblacion_propia,
+        generaciones_a_tolerar=generaciones_a_tolerar_propia
+    )
+    solucion_propia = prueba_genetico(alg_gen_propio, generaciones_propia, True)
+
+    n_poblacion_propia = 200
+    generaciones_propia = 6000
+    generaciones_a_tolerar_propia = 45
+    alg_gen_propio = genetico_tarea.GeneticoPermutacionesPropio(
+        ProblemaNreinas(64),
+        n_población=n_poblacion_propia,
+        generaciones_a_tolerar=generaciones_a_tolerar_propia
+    )
+    solucion_propia = prueba_genetico(alg_gen_propio, generaciones_propia, True)
+
+    n_poblacion_propia = 300
+    generaciones_propia = 1200
+    generaciones_a_tolerar_propia = 60
+    alg_gen_propio = genetico_tarea.GeneticoPermutacionesPropio(
+        ProblemaNreinas(128),
+        n_población=n_poblacion_propia,
+        generaciones_a_tolerar=generaciones_a_tolerar_propia
+    )
+    solucion_propia = prueba_genetico(alg_gen_propio, generaciones_propia, True)
