@@ -95,8 +95,19 @@ def prueba_temple_simulado(problema=ProblemaNreinas(8)):
     print(solucion)
 
 
-if __name__ == "__main__":
+if __name__ == "__main2__":
 
     prueba_descenso_colinas(ProblemaNreinas(50), 10)
     prueba_temple_simulado(ProblemaNreinas(50))
 
+if __name__ == "__main__":
+
+    tamaños = [8, 16, 32, 64, 128]
+
+    for n in tamaños:
+        print("\n" + "=" * 40)
+        print(f"Probando {n} reinas")
+        print("=" * 40)
+
+        prueba_descenso_colinas(ProblemaNreinas(n), 10)
+        prueba_temple_simulado(ProblemaNreinas(n))
