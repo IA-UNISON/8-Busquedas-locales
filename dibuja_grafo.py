@@ -19,7 +19,7 @@ $pip install pillow
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
+__author__ = 'Beltran Zazueta'
 
 import blocales
 import random
@@ -95,34 +95,73 @@ class problema_grafica_grafo(blocales.Problema):
             yield tuple(vecino)
     
     def vecino_aleatorio(self, estado, dmax=10):
-        """
-        Encuentra un vecino en forma aleatoria. En estea primera
-        versión lo que hacemos es tomar un valor aleatorio, y
-        sumarle o restarle x pixeles al azar.
+    #     """
+    #     Encuentra un vecino en forma aleatoria. En estea primera
+    #     versión lo que hacemos es tomar un valor aleatorio, y
+    #     sumarle o restarle x pixeles al azar.
+    #
+    #     Este es un vecino aleatorio muy malo. Por lo que deberás buscar
+    #     como hacer un mejor vecino aleatorio y comparar las ventajas de
+    #     hacer un mejor vecino en el algoritmo de temple simulado.
+    #
+    #     @param estado: Una tupla con el estado.
+    #     @param dispersion: Un flotante con el valor de dispersión para el
+    #                        vertice seleccionado
+    #
+    #     @return: Una tupla con un estado vecino al estado de entrada.
+    #
+    #     """
+    #     vecino = list(estado)
+    #     i = random.randint(0, len(vecino) - 1)
+    #     vecino[i] = max(10,
+    #                     min(self.dim - 10,
+    #                         vecino[i] + random.randint(-dmax,  dmax)))
+    #     return tuple(vecino)
 
-        Este es un vecino aleatorio muy malo. Por lo que deberás buscar
-        como hacer un mejor vecino aleatorio y comparar las ventajas de
-        hacer un mejor vecino en el algoritmo de temple simulado.
+    
+    # Por supuesto que esta no es la mejor manera de generar vecinos.
+    #
+    # Propon una manera alternativa de vecino_aleatorio y muestra que
+    # con tu propuesta se obtienen resultados mejores o en menor tiempo
 
-        @param estado: Una tupla con el estado.
-        @param dispersion: Un flotante con el valor de dispersión para el
-                           vertice seleccionado
+    #  Los pasos gaussianos ofrecen mayor exploración local, mientras que
+    #  los swaps permiten una exploración más global del espacio de soluciones.
+    #  La combinación de ambos métodos puede mejorar la eficiencia del algoritmo
+    #  de temple simulado al permitirle escapar de óptimos locales y explorar 
+    #  configuraciones más diversas del grafo.
 
-        @return: Una tupla con un estado vecino al estado de entrada.
+        """Alternativa: vecino híbrido.
 
+        - Con probabilidad 0.5 mueve aleatoriamente (con paso gaussiano)
+          las coordenadas x,y de un vértice seleccionado.
+        - Con probabilidad 0.5 intercambia las posiciones de dos vértices
+          completos (swap), lo que puede romper configuraciones con
+          muchos cruces de aristas.
+
+        Esta mezcla permite explorar localmente (pequeños desplazamientos)
+        y globalmente (swaps) el espacio de soluciones.
         """
         vecino = list(estado)
-        i = random.randint(0, len(vecino) - 1)
-        vecino[i] = max(10,
-                        min(self.dim - 10,
-                            vecino[i] + random.randint(-dmax,  dmax)))
+        n_vertices = len(vecino) // 2
+        # Mover un vértice con un paso gaussiano
+        if random.random() < 0.5:
+            v = random.randrange(n_vertices)
+            ix = 2 * v
+            iy = ix + 1
+            # Desplazamiento normal con desviación proporcional a dmax
+            dx = int(random.gauss(0, max(1.0, dmax / 2.0)))
+            dy = int(random.gauss(0, max(1.0, dmax / 2.0)))
+            vecino[ix] = max(10, min(self.dim - 10, vecino[ix] + dx))
+            vecino[iy] = max(10, min(self.dim - 10, vecino[iy] + dy))
+        else:
+            # Swap: intercambiar posiciones (x,y) de dos vértices aleatorios
+            if n_vertices >= 2:
+                v1, v2 = random.sample(range(n_vertices), 2)
+                ix1, iy1 = 2 * v1, 2 * v1 + 1
+                ix2, iy2 = 2 * v2, 2 * v2 + 1
+                vecino[ix1], vecino[ix2] = vecino[ix2], vecino[ix1]
+                vecino[iy1], vecino[iy2] = vecino[iy2], vecino[iy1]
         return tuple(vecino)
-
-        
-        # Por supuesto que esta no es la mejor manera de generar vecinos.
-        #
-        # Propon una manera alternativa de vecino_aleatorio y muestra que
-        # con tu propuesta se obtienen resultados mejores o en menor tiempo
 
     def costo(self, estado):
         """
@@ -140,10 +179,10 @@ class problema_grafica_grafo(blocales.Problema):
 
         # Inicializa fáctores lineales para los criterios más importantes
         # (default solo cuanta el criterio 1)
-        K1 = 1.0
-        K2 = 0.0
-        K3 = 0.0
-        K4 = 0.0
+        K1 = 2.0
+        K2 = 0.5
+        K3 = 0.5
+        K4 = 1.5
 
         # Genera un diccionario con el estado y la posición
         estado_dic = self.estado2dic(estado)
@@ -170,8 +209,13 @@ class problema_grafica_grafo(blocales.Problema):
         #
         # Al final, es necesario darle un peso lineal a cada uno de
         # los subcriterios. ¿Que valores de diste a K1, K2 y K3 respectivamente?
-        # 
+        # K1 = 2.0, K2 = 0.5, K3 = 0.5, K4 = 1.5
+
         # Justifica tu criterio
+        # Me parece que manteniendo valores cercanos a 1 para K2 y K3, y un valor
+        # mayor para K1 y K4, se logra un balance entre minimizar los cruces y 
+        # mantener una buena separación y ángulos entre las aristas. 
+        # Esto debería resultar en un grafo más estético y legible.
   
 
     def numero_de_cruces(self, estado_dic):
@@ -267,10 +311,49 @@ class problema_grafica_grafo(blocales.Problema):
         @return: Un número.
 
         """
-        # Agrega el método que considere el angulo entre aristas de
-        # cada vertice. Dale diferente peso a cada criterio hasta
- 
-        return 0
+        # Penaliza ángulos pequeños entre aristas incidentes en el
+        # mismo vértice. Para cada vértice consideramos todas las
+        # parejas de aristas que lo conectan con dos vecinos y
+        # añadimos una penalización si el ángulo entre ellas es
+        # menor a pi/6. La penalización es lineal: 1 - angle/threshold.
+        total = 0.0
+        threshold = math.pi / 6.0  # 30 grados
+
+        # Construye lista de vecinos por vértice
+        vecinos = {v: [] for v in self.vertices}
+        for (a, b) in self.aristas:
+            vecinos[a].append(b)
+            vecinos[b].append(a)
+
+        for v in self.vertices:
+            pos_v = estado_dic[v]
+            neighs = vecinos.get(v, [])
+            if len(neighs) < 2:
+                continue
+
+            # Para cada par de vecinos calcula el ángulo en v
+            for (n1, n2) in itertools.combinations(neighs, 2):
+                x1, y1 = estado_dic[n1]
+                x2, y2 = estado_dic[n2]
+                vx1, vy1 = x1 - pos_v[0], y1 - pos_v[1]
+                vx2, vy2 = x2 - pos_v[0], y2 - pos_v[1]
+
+                norm1 = math.hypot(vx1, vy1)
+                norm2 = math.hypot(vx2, vy2)
+
+                # Si alguno tiene longitud casi cero, penaliza fuerte
+                if norm1 < 1e-6 or norm2 < 1e-6:
+                    total += 1.0
+                    continue
+
+                dot = vx1 * vx2 + vy1 * vy2
+                cos_theta = max(-1.0, min(1.0, dot / (norm1 * norm2)))
+                angle = math.acos(cos_theta)
+
+                if angle < threshold:
+                    total += (1.0 - (angle / threshold))
+
+        return total
 
     def criterio_propio(self, estado_dic):
         """
@@ -285,11 +368,53 @@ class problema_grafica_grafo(blocales.Problema):
         @return: Un número.
 
         """
-        # Desarrolla un criterio propio y ajusta su importancia en el
-        # costo total con K4 ¿Mejora el resultado? ¿En que mejora el
-        # resultado final?
+        # Criterio propio:
+        # - Mantener cerca los vértices que tienen grado alto (muchas
+        #   aristas incidentes). Para cada vecino de un vértice de grado
+        #   >= 3 penalizamos si la distancia es mayor que un ideal cercano.
+        # - Mantener más alejados los vértices hoja (grado == 1). Para
+        #   estos penalizamos si la distancia es menor que un ideal lejano.
+        # La penalización es proporcional a la desviación relativa y
+        # escalada por el grado cuando corresponda. Se divide entre 2
+        # al final para no contar cada arista dos veces.
 
-        return 0
+        total = 0.0
+
+        # Parámetros
+        ideal_close = 300.0  # distancia objetivo para vértices de grado alto
+        ideal_far = 480.0 # distancia objetivo mínima para hojas
+        weight_high_deg = 1.0
+        weight_leaf = 0.8
+
+        # Construye lista de vecinos y grado
+        vecinos = {v: [] for v in self.vertices}
+        for (a, b) in self.aristas:
+            vecinos[a].append(b)
+            vecinos[b].append(a)
+
+        for v in self.vertices:
+            deg = len(vecinos[v])
+            if deg == 0:
+                continue
+            x_v, y_v = estado_dic[v]
+            for n in vecinos[v]:
+                x_n, y_n = estado_dic[n]
+                dist = math.hypot(x_v - x_n, y_v - y_n)
+
+                # Vértices de grado alto: queremos que estén cerca
+                if deg >= 3:
+                    if dist > ideal_close:
+                        # Penalización proporcional a cuánto excede la distancia
+                        total += weight_high_deg * (dist / ideal_close - 1.0) * (deg - 2)
+
+                # Hojas (grado 1): queremos que estén algo más alejadas
+                elif deg == 1:
+                    if dist < ideal_far:
+                        total += weight_leaf * (1.0 - (dist / ideal_far))
+
+        # Cada arista se ha contado dos veces (una por cada extremo),
+        # por lo que normalizamos.
+        return total / 2.0
 
     def estado2dic(self, estado):
         """
@@ -380,9 +505,14 @@ def main():
 
     # ¿Que valores para ajustar el temple simulado son los que mejor
     # resultado dan?
-    #
+    #   
     # ¿Que encuentras en los resultados?, ¿Cual es el criterio mas importante?
-    #
+    #   Me parece que el criterio más importante es el de los cruces, 
+    #   ya que es el que más afecta la estética del grafo. Sin embargo, 
+    #   los otros criterios también son importantes para mejorar la legibilidad
+    #    y la claridad del grafo.
+
+
     # En general para obtener mejores resultados del temple simulado,
     # es necesario utilizar una función de calendarización acorde con
     # el metodo en que se genera el vecino aleatorio.  Existen en la

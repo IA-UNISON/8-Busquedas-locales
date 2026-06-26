@@ -356,5 +356,5 @@ if __name__ == "__main__":
 
     # Un objeto genético con permutaciones con una población de
     # 10 individuos y una probabilidad de mutacion de 0.1
-    genetico = GeneticoPermutaciones(ProblemaTonto(10), 10, 0.1)
+    genetico = GeneticoPermutaciones(ProblemaTonto(10), 10, 0.9)
     prueba(genetico)

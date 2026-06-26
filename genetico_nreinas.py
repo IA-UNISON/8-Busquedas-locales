@@ -81,21 +81,18 @@ if __name__ == "__main__":
     # función que genere una tabla con las soluciones, o hazlo a mano
     # si eso ayuda a comprender mejor el algoritmo.
     #
-    #   -- ¿Cuales son en cada caso los mejores valores?  (escribelos
-    #       abajo de esta linea)
-    #
-    #
-    #   -- ¿Que reglas podrías establecer para asignar valores segun
-    #       tu experiencia?
     #
 
     n_poblacion = 64
     generaciones = 100
-    prob_mutacion = 0.05
+    prob_mutacion = 0.04
 
-    alg_gen = genetico.GeneticoPermutaciones(ProblemaNreinas(16),
-                                             n_poblacion, prob_mutacion)
+    alg_gen = genetico.GeneticoPermutaciones(ProblemaNreinas(16),n_poblacion, prob_mutacion)
 
+    solucion = prueba_genetico(alg_gen, generaciones, True)
+
+    alg_gen = genetico_tarea.GeneticoPermutacionesPropio(ProblemaNreinas(16),
+                                                         n_poblacion, prob_mutacion)
     solucion = prueba_genetico(alg_gen, generaciones, True)
 
     # Modifica los parámetro del algoritmo genetico que propusite tu
@@ -108,8 +105,20 @@ if __name__ == "__main__":
     #
     #   -- ¿Cuales son en cada caso los mejores valores?
     #       (escribelos abajo de esta linea)
-    #
+    # Experimente con valores de 0.9 a 0.01 me parece que entre más alta la probabilidad 
+    # de mutación mayor tiempo se tarda en relizar la prueba y esto no asegura mejores resultados
+    # se tarda más por que necesita más tiempo para realizar las operaciones de mutaciones necesarias
+    # nungun valor de mutación te asegura encontrar la solución, muy poca probabilidad reduce la
+    # variación lo cual puede hacer más prominente un estancamiento siento que con valores muy pequeños de mutación
+    # se tienen dificultades llegando a buenas soluciones ya que estos fueron los que me dieron valores más altos de 
+    # 3 o 4 conflictos, por usar terminos conocidos siento que se estanca en un minimo local, no hay variación
+    # por lo tanto nunca encuentra mejores soluciones a las que ya conoce.
     #
     #   -- ¿Que reglas podrías establecer para asignar valores
     #       segun tu experiencia?
+    #   Los valores menores a 0.1 y valores superiores a 0.01 dan mejores soluciones 
+    #   en terminos de velocidad y encontrar soluciones, la verdad me quedé con el 0.4
+    #   ya que fue el que más consistentemente me encontró la solución optima en el mejor tiempo.
+    #
+    #
     #
